@@ -2,55 +2,112 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ULTRA V39 | STEP 2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ULTRA V39 | FINAL</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-        .container { width: 80%; padding: 20px; border: 1px solid #333; border-radius: 15px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #007aff; border: none; color: #fff; font-weight: bold; border-radius: 8px; }
-        #db-status { font-size: 12px; color: #555; margin-bottom: 15px; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; }
+        .view { display: none; height: 100vh; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .active { display: flex; }
+        input, button { padding: 15px; margin: 5px 0; border-radius: 12px; border: none; width: 100%; box-sizing: border-box; }
+        input { background: #111; color: #fff; border: 1px solid #333; }
+        button { background: #007aff; color: white; font-weight: bold; }
+        #msgs { flex: 1; overflow-y: auto; margin: 10px 0; font-size: 14px; border: 1px solid #222; padding: 10px; border-radius: 10px; }
+        #video-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 100; }
+        #remote-v { width: 100%; height: 100%; }
+        #local-v { position: absolute; top: 20px; right: 20px; width: 100px; height: 150px; border: 2px solid #fff; border-radius: 10px; z-index: 110; }
+        .hangup { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: red; width: 60px; height: 60px; border-radius: 50%; z-index: 120; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>ULTRA V39</h1>
-        <div id="db-status">ПРОВЕРКА СВЯЗИ...</div>
-        
+    <div id="scr-auth" class="view active">
+        <h1>ULTRA V38</h1>
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="pass" placeholder="Password">
-        <button onclick="login()">ПРОВЕРИТЬ ВХОД</button>
+        <input type="text" id="nick" placeholder="Твой Ник (для новых)">
+        <button onclick="entry()">ВОЙТИ</button>
+    </div>
+
+    <div id="scr-main" class="view">
+        <header style="display:flex; justify-content:space-between; align-items:center;">
+            <b id="my-name">---</b>
+            <button onclick="startCall()" style="width:auto; padding:10px 20px; background:green;">ЗВОНОК 📹</button>
+        </header>
+        <div id="msgs"></div>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="m-val" placeholder="Сообщение...">
+            <button onclick="sendMsg()" style="width:80px;">SEND</button>
+        </div>
+    </div>
+
+    <div id="video-container">
+        <div id="remote-v"></div>
+        <div id="local-v"></div>
+        <button class="hangup" onclick="endCall()">✖</button>
     </div>
 
     <script>
-        // Твой конфиг
-        const firebaseConfig = {
+        const AGORA_ID = "1a8f4707f44e49ca81e2903dc2bab4a7";
+        const fbCfg = {
             apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk",
             databaseURL: "https://morozov-ultra-default-rtdb.firebaseio.com",
             projectId: "morozov-ultra"
         };
 
-        // Инициализация
-        try {
-            firebase.initializeApp(firebaseConfig);
-            document.getElementById('db-status').innerText = "СВЯЗЬ С БАЗОЙ: OK";
-            document.getElementById('db-status').style.color = "#34c759";
-        } catch (e) {
-            document.getElementById('db-status').innerText = "ОШИБКА ПОДКЛЮЧЕНИЯ";
-            document.getElementById('db-status').style.color = "red";
+        firebase.initializeApp(fbCfg);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        let me, peer, room, localTracks = [];
+
+        function show(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
         }
 
-        function login() {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('pass').value;
-            
-            firebase.auth().signInWithEmailAndPassword(e, p)
-                .then(() => { alert("ВХОД ВЫПОЛНЕН!"); })
-                .catch(err => { alert("ОШИБКА: " + err.message); });
+        async function entry() {
+            const e = document.getElementById('email').value, p = document.getElementById('pass').value, n = document.getElementById('nick').value;
+            try {
+                await auth.signInWithEmailAndPassword(e, p);
+            } catch {
+                if(n) {
+                    const r = await auth.createUserWithEmailAndPassword(e, p);
+                    await db.ref(`v38/u/${r.user.uid}`).set({n, uid: r.user.uid});
+                    await db.ref(`v38/m/${n}`).set(r.user.uid);
+                }
+            }
         }
-    </script>
-</body>
-</html>
+
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                db.ref(`v38/u/${u.uid}`).on('value', s => {
+                    me = s.val();
+                    document.getElementById('my-name').innerText = me.n;
+                    show('scr-main');
+                    initLogic();
+                });
+            } else show('scr-auth');
+        });
+
+        function initLogic() {
+            const pNick = prompt("Ник друга:");
+            db.ref(`v38/m/${pNick}`).once('value', s => {
+                peer = {n: pNick, uid: s.val()};
+                room = [me.uid, peer.uid].sort().join("");
+                
+                // Слушаем сообщения
+                db.ref(`v38/msg/${room}`).on('value', ss => {
+                    const b = document.getElementById('msgs'); b.innerHTML = "";
+                    ss.forEach(m => { b.innerHTML += `<div><b>${m.val().s}:</b> ${m.val().t}</div>`; });
+                    b.scrollTop = b.scrollHeight;
+                });
+
+                // Слушаем звонки
+                db.ref(`v38/call/${me.uid}`).on('value', cs => {
+                    if(cs.exists() && cs.val().st === 'req') {
+                        if(confirm("Звонит " + cs.val().from)) {
+                            db.ref(`v38/call/${me.uid}`).update({st: 'ok'});
