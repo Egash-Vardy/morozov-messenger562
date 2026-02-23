@@ -2,34 +2,55 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ULTRA V39 | CHAT ONLY</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ULTRA V38 | REBORN</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; text-align: center; }
-        input { width: 100%; padding: 15px; margin: 10px 0; background: #111; border: 1px solid #333; color: #fff; border-radius: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #007aff; border: none; color: white; font-weight: bold; border-radius: 10px; }
-        #chat { display: none; text-align: left; }
-        #msgs { height: 300px; overflow-y: auto; border: 1px solid #222; padding: 10px; margin-bottom: 10px; border-radius: 10px; background: #050505; }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 0; overflow: hidden; }
+        .view { display: none; height: 100vh; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .active { display: flex; }
+        input, button { padding: 15px; margin: 5px 0; border-radius: 12px; border: none; width: 100%; box-sizing: border-box; font-size: 16px; }
+        input { background: #111; color: #fff; border: 1px solid #333; }
+        button { background: #007aff; color: white; font-weight: bold; }
+        #msgs { flex: 1; overflow-y: auto; margin: 10px 0; border: 1px solid #222; padding: 10px; border-radius: 10px; background: #050505; }
+        /* Видео контейнеры */
+        #v-wrap { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; }
+        #remote-v { width: 100%; height: 100%; background: #111; }
+        #local-v { position: absolute; top: 20px; right: 20px; width: 100px; height: 150px; border: 2px solid #fff; border-radius: 10px; z-index: 1001; }
+        .hang { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: #ff3b30; width: 60px; height: 60px; border-radius: 50%; }
     </style>
 </head>
 <body>
 
-    <div id="auth">
+    <div id="v-wrap">
+        <div id="remote-v"></div>
+        <div id="local-v"></div>
+        <button class="hang" onclick="endCall()">✖</button>
+    </div>
+
+    <div id="scr-auth" class="view active">
         <h1>ULTRA V38</h1>
         <input type="email" id="e" placeholder="Email">
         <input type="password" id="p" placeholder="Password">
-        <button onclick="entry()">ВОЙТИ</button>
+        <button onclick="entry()">ENTER</button>
     </div>
 
-    <div id="chat">
-        <h3 id="status">Чат активен</h3>
+    <div id="scr-main" class="view">
+        <header style="display:flex; justify-content:space-between; align-items:center;">
+            <b id="my-nick">...</b>
+            <button onclick="startCall()" style="width:auto; padding:8px 15px; background:#34c759;">VIDEO 📹</button>
+        </header>
         <div id="msgs"></div>
-        <input type="text" id="m" placeholder="Сообщение...">
-        <button onclick="send()">ОТПРАВИТЬ</button>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="m" placeholder="Message...">
+            <button onclick="sendMsg()" style="width:80px;">➜</button>
+        </div>
     </div>
+
+    <script id="agora-loader"></script>
 
     <script>
         const cfg = {
@@ -38,41 +59,104 @@
             projectId: "morozov-ultra"
         };
         firebase.initializeApp(cfg);
+        const auth = firebase.auth();
+        const db = firebase.database();
         
-        var userNow, room, nick;
+        let me, peerNick, room, client, localTracks = [];
 
-        function entry() {
-            var email = document.getElementById('e').value;
-            var pass = document.getElementById('p').value;
-            firebase.auth().signInWithEmailAndPassword(email, pass)
-                .catch(function(err) { alert(err.message); });
+        function show(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
         }
 
-        firebase.auth().onAuthStateChanged(function(u) {
+        // Вход
+        function entry() {
+            auth.signInWithEmailAndPassword(document.getElementById('e').value, document.getElementById('p').value)
+                .catch(err => alert(err.message));
+        }
+
+        auth.onAuthStateChanged(u => {
             if(u) {
-                userNow = u;
-                document.getElementById('auth').style.display = 'none';
-                document.getElementById('chat').style.display = 'block';
-                nick = prompt("Твой ник для чата:");
-                var pNick = prompt("Ник друга:");
-                room = [u.uid, pNick].sort().join(""); // Упрощенно для теста
+                // В этом чате ник спрашиваем один раз для простоты
+                const nick = prompt("Твой ник:");
+                me = { n: nick, uid: u.uid };
+                document.getElementById('my-nick').innerText = nick;
+                peerNick = prompt("Ник друга:");
+                room = [u.uid, peerNick].sort().join("");
                 
-                firebase.database().ref('v38/test/' + room).on('value', function(s) {
-                    var b = document.getElementById('msgs');
-                    b.innerHTML = "";
-                    s.forEach(function(m) {
-                        b.innerHTML += "<div><b>" + m.val().s + ":</b> " + m.val().t + "</div>";
-                    });
-                    b.scrollTop = b.scrollHeight;
-                });
-            }
+                show('scr-main');
+                listenMessages();
+                listenCalls();
+            } else show('scr-auth');
         });
 
-        function send() {
-            var v = document.getElementById('m').value;
+        function listenMessages() {
+            db.ref('v38/chat/' + room).on('value', s => {
+                const b = document.getElementById('msgs'); b.innerHTML = "";
+                s.forEach(m => {
+                    b.innerHTML += `<div><small>${m.val().s}:</small> ${m.val().t}</div>`;
+                });
+                b.scrollTop = b.scrollHeight;
+            });
+        }
+
+        function sendMsg() {
+            const v = document.getElementById('m').value;
             if(!v) return;
-            firebase.database().ref('v38/test/' + room).push({s: nick, t: v});
+            db.ref('v38/chat/' + room).push({s: me.n, t: v});
             document.getElementById('m').value = "";
+        }
+
+        // --- ЛОГИКА ВИДЕО (ЗАГРУЖАЕТСЯ ТОЛЬКО ПРИ ЗВОНКЕ) ---
+        function loadAgora(callback) {
+            if (window.AgoraRTC) return callback();
+            const script = document.createElement('script');
+            script.src = "https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js";
+            script.onload = callback;
+            document.head.appendChild(script);
+        }
+
+        async function startCall() {
+            db.ref('v38/calls/' + peerNick).set({ from: me.n, rm: room, st: 'req' });
+            initAgora(room);
+        }
+
+        function listenCalls() {
+            db.ref('v38/calls/' + me.n).on('value', s => {
+                if(s.exists() && s.val().st === 'req') {
+                    if(confirm("Звонок от " + s.val().from)) {
+                        db.ref('v38/calls/' + me.n).update({ st: 'ok' });
+                        initAgora(s.val().rm);
+                    }
+                }
+            });
+        }
+
+        function initAgora(rm) {
+            loadAgora(async () => {
+                document.getElementById('v-wrap').style.display = 'block';
+                if(!client) client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                
+                await client.join("1a8f4707f44e49ca81e2903dc2bab4a7", rm, null, me.uid);
+                const a = await AgoraRTC.createMicrophoneAudioTrack();
+                const v = await AgoraRTC.createCameraVideoTrack();
+                localTracks = [a, v];
+                v.play("local-v");
+                await client.publish(localTracks);
+
+                client.on("user-published", async (user, type) => {
+                    await client.subscribe(user, type);
+                    if(type === "video") user.videoTrack.play("remote-v");
+                    if(type === "audio") user.audioTrack.play();
+                });
+            });
+        }
+
+        async function endCall() {
+            localTracks.forEach(t => { t.stop(); t.close(); });
+            if(client) await client.leave();
+            document.getElementById('v-wrap').style.display = 'none';
+            db.ref('v38/calls/' + me.n).remove();
         }
     </script>
 </body>
