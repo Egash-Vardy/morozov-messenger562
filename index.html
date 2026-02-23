@@ -1,85 +1,21 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ULTRA V38 | CLEAN</title>
-    
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
-
-    <style>
-        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .box { width: 90%; max-width: 400px; padding: 30px; background: #111; border-radius: 25px; border: 1px solid #222; text-align: center; }
-        input { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 12px; box-sizing: border-box; outline: none; }
-        button { width: 100%; padding: 15px; background: #007aff; border: none; color: #fff; font-weight: bold; border-radius: 12px; margin-top: 10px; }
-        #log { color: #555; font-size: 10px; margin-top: 15px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST BOOT</title>
 </head>
-<body>
+<body style="background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;">
 
-    <div class="box" id="app">
-        <h1 style="margin-bottom:20px;">ULTRA V38</h1>
-        
-        <div id="auth-form">
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="pass" placeholder="Password">
-            <button onclick="doLogin()">ВОЙТИ В СИСТЕМУ</button>
-        </div>
-
-        <div id="ui" style="display:none;">
-            <h2 style="color:#34c759;">СИСТЕМА АКТИВНА</h2>
-            <p id="user-info"></p>
-            <button onclick="location.reload()" style="background:#333;">ВЫЙТИ</button>
-        </div>
-
-        <div id="log">Инициализация...</div>
-    </div>
+    <h1 id="status">СИСТЕМА ЖДЕТ</h1>
+    <button id="test-btn" style="padding: 20px; background: red; color: white; border: none; border-radius: 10px;" onclick="check()">НАЖМИ МЕНЯ</button>
 
     <script>
-        // Простейший логгер
-        function log(m) { document.getElementById('log').innerText = m; }
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk",
-            databaseURL: "https://morozov-ultra-default-rtdb.firebaseio.com",
-            projectId: "morozov-ultra"
-        };
-
-        try {
-            firebase.initializeApp(firebaseConfig);
-            log("Firebase: OK");
-        } catch(e) {
-            log("Ошибка конфига: " + e.message);
+        function check() {
+            document.getElementById('status').innerText = "СКРИПТЫ РАБОТАЮТ!";
+            document.getElementById('test-btn').style.background = "green";
+            alert("Если ты это видишь, значит JS на телефоне активен!");
         }
-
-        const auth = firebase.auth();
-
-        function doLogin() {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('pass').value;
-            log("Вход...");
-            
-            auth.signInWithEmailAndPassword(e, p)
-                .then(r => {
-                    log("Успешно!");
-                })
-                .catch(err => {
-                    alert("Ошибка: " + err.message);
-                    log("Ошибка входа");
-                });
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                document.getElementById('auth-form').style.display = 'none';
-                document.getElementById('ui').style.display = 'block';
-                document.getElementById('user-info').innerText = "Агент: " + user.email;
-                log("Сессия активна");
-            }
-        });
     </script>
 </body>
 </html>
