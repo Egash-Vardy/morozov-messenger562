@@ -1,163 +1,302 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ULTRA V38 | REBORN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ULTRA V38 | SECURE</title>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    
+
     <style>
-        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding: 0; overflow: hidden; }
-        .view { display: none; height: 100vh; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .active { display: flex; }
-        input, button { padding: 15px; margin: 5px 0; border-radius: 12px; border: none; width: 100%; box-sizing: border-box; font-size: 16px; }
-        input { background: #111; color: #fff; border: 1px solid #333; }
-        button { background: #007aff; color: white; font-weight: bold; }
-        #msgs { flex: 1; overflow-y: auto; margin: 10px 0; border: 1px solid #222; padding: 10px; border-radius: 10px; background: #050505; }
-        /* Видео контейнеры */
-        #v-wrap { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; }
-        #remote-v { width: 100%; height: 100%; background: #111; }
-        #local-v { position: absolute; top: 20px; right: 20px; width: 100px; height: 150px; border: 2px solid #fff; border-radius: 10px; z-index: 1001; }
-        .hang { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: #ff3b30; width: 60px; height: 60px; border-radius: 50%; }
+        :root {
+            --bg: #000; --surf: #0a0a0c; --card: #141417; --text: #fff;
+            --accent: #007aff; --green: #34c759; --red: #ff3b30; --border: rgba(255,255,255,0.08);
+        }
+        body.light-mode {
+            --bg: #f2f2f7; --surf: #fff; --card: #fff; --text: #000; --border: rgba(0,0,0,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+        /* NOTIFICATIONS */
+        #ntf {
+            position: fixed; top: -100px; left: 15px; right: 15px; background: var(--accent);
+            padding: 16px; border-radius: 20px; z-index: 10005; display: flex; align-items: center; gap: 12px;
+            transition: 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        #ntf.show { top: calc(env(safe-area-inset-top) + 15px); }
+
+        /* CALL UI */
+        #call-ui {
+            position: fixed; inset: 0; background: #000; z-index: 10000;
+            display: none; flex-direction: column; align-items: center; justify-content: space-around;
+        }
+        #call-ui.active { display: flex; }
+        #remote-player { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+        #local-player { 
+            position: absolute; top: 60px; right: 20px; width: 110px; height: 160px; 
+            border-radius: 18px; border: 2px solid #fff; z-index: 5; background: #000;
+        }
+
+        /* VIEWPORTS */
+        .viewport { position: absolute; inset: 0; display: none; flex-direction: column; background: var(--bg); }
+        .viewport.active { display: flex; }
+
+        header { padding: calc(env(safe-area-inset-top) + 20px) 20px 20px; background: var(--surf); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .scroller { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        
+        .agent-card { background: var(--card); padding: 18px; border-radius: 22px; display: flex; align-items: center; gap: 15px; border: 1px solid var(--border); }
+        .agent-ava { width: 50px; height: 50px; background: var(--accent); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 20px; margin-bottom: 5px; }
+        .msg.me { align-self: flex-end; background: var(--accent); color: #fff; }
+        .msg.him { align-self: flex-start; background: var(--card); border: 1px solid var(--border); }
+
+        .input-bar { padding: 10px 15px calc(env(safe-area-inset-bottom) + 10px); background: var(--surf); display: flex; gap: 10px; align-items: center; }
+        .input-bar input { flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 12px; border-radius: 25px; color: #fff; }
+
+        .nav { height: calc(65px + env(safe-area-inset-bottom)); background: var(--surf); border-top: 1px solid var(--border); display: flex; }
+        .nav-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; opacity: 0.5; }
+        .nav-tab.active { opacity: 1; color: var(--accent); }
+
+        .mu-input { width: 100%; background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 15px; color: #fff; margin-bottom: 10px; }
+        .mu-btn { width: 100%; background: var(--accent); color: #fff; padding: 18px; border: none; border-radius: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="v-wrap">
-        <div id="remote-v"></div>
-        <div id="local-v"></div>
-        <button class="hang" onclick="endCall()">✖</button>
+    <div id="ntf">
+        <div style="font-size: 24px;">🛡️</div>
+        <div><b id="nt-t">SYSTEM</b><br><small id="nt-b">Ready</small></div>
     </div>
 
-    <div id="scr-auth" class="view active">
-        <h1>ULTRA V38</h1>
-        <input type="email" id="e" placeholder="Email">
-        <input type="password" id="p" placeholder="Password">
-        <button onclick="entry()">ENTER</button>
-    </div>
-
-    <div id="scr-main" class="view">
-        <header style="display:flex; justify-content:space-between; align-items:center;">
-            <b id="my-nick">...</b>
-            <button onclick="startCall()" style="width:auto; padding:8px 15px; background:#34c759;">VIDEO 📹</button>
-        </header>
-        <div id="msgs"></div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="m" placeholder="Message...">
-            <button onclick="sendMsg()" style="width:80px;">➜</button>
+    <div id="call-ui">
+        <div id="remote-player"></div>
+        <div id="local-player"></div>
+        <div style="z-index:10; text-align:center;">
+            <div id="c-ava" style="width:100px; height:100px; background:var(--accent); border-radius:50%; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; font-size:40px;">?</div>
+            <h1 id="c-name">Agent</h1>
+            <p id="c-status">ENCRYPTED</p>
+            <h2 id="c-timer" style="display:none;">00:00</h2>
+        </div>
+        <div style="z-index:10; display:flex; gap:30px;">
+            <button onclick="Engine.Call.stop()" style="width:70px; height:70px; border-radius:50%; background:var(--red); border:none; color:white; font-size:30px;">✖</button>
+            <button id="btn-answer" onclick="Engine.Call.answer()" style="display:none; width:70px; height:70px; border-radius:50%; background:var(--green); border:none; color:white; font-size:30px;">✔</button>
         </div>
     </div>
 
-    <script id="agora-loader"></script>
+    <section id="scr-auth" class="viewport active">
+        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:30px;">
+            <h1 style="text-align:center; margin-bottom:30px;">ULTRA V38</h1>
+            <input type="email" id="e-mail" class="mu-input" placeholder="Email">
+            <input type="password" id="e-pass" class="mu-input" placeholder="Password">
+            <input type="text" id="e-nick" class="mu-input" placeholder="Nick (optional)">
+            <button class="mu-btn" onclick="Engine.Auth.run()">LOGIN</button>
+        </div>
+    </section>
+
+    <section id="scr-hub" class="viewport">
+        <header><b>HUB</b> <span onclick="Engine.Theme.toggle()">🌓</span></header>
+        <div style="padding:15px;">
+            <div class="agent-card">
+                <input type="text" id="f-nick" style="flex:1; background:transparent; border:none; color:#fff;" placeholder="Agent nick...">
+                <b onclick="Engine.Net.link()" style="color:var(--accent)">LINK</b>
+            </div>
+        </div>
+        <div id="agent-list" class="scroller"></div>
+        <nav class="nav">
+            <div class="nav-tab active" onclick="Engine.View('scr-hub')">📡 HUB</div>
+            <div class="nav-tab" onclick="Engine.View('scr-settings')">⚙️ CORE</div>
+        </nav>
+    </section>
+
+    <section id="scr-chat" class="viewport">
+        <header>
+            <b onclick="Engine.View('scr-hub')">←</b>
+            <b id="p-name">Agent</b>
+            <div style="display:flex; gap:15px;">
+                <span onclick="Engine.Call.init('audio')">📞</span>
+                <span onclick="Engine.Call.init('video')">📹</span>
+            </div>
+        </header>
+        <div id="chat-stream" class="scroller"></div>
+        <div class="input-bar">
+            <input type="text" id="m-val" placeholder="Message...">
+            <b onclick="Engine.Media.send()" style="color:var(--accent)">SEND</b>
+        </div>
+    </section>
+
+    <section id="scr-settings" class="viewport">
+        <header><b>SETTINGS</b></header>
+        <div class="scroller">
+            <div class="agent-card">
+                <div id="my-ava" class="agent-ava">?</div>
+                <div><h3 id="my-name">User</h3></div>
+            </div>
+            <button onclick="location.reload()" style="background:none; color:var(--red); border:1px solid var(--red); padding:15px; border-radius:10px; margin-top:20px;">LOGOUT</button>
+        </div>
+        <nav class="nav">
+            <div class="nav-tab" onclick="Engine.View('scr-hub')">📡 HUB</div>
+            <div class="nav-tab active" onclick="Engine.View('scr-settings')">⚙️ CORE</div>
+        </nav>
+    </section>
 
     <script>
-        const cfg = {
-            apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk",
-            databaseURL: "https://morozov-ultra-default-rtdb.firebaseio.com",
-            projectId: "morozov-ultra"
+        const fbConfig = { 
+            apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk", 
+            databaseURL: "https://morozov-ultra-default-rtdb.firebaseio.com", 
+            projectId: "morozov-ultra" 
         };
-        firebase.initializeApp(cfg);
-        const auth = firebase.auth();
+        firebase.initializeApp(fbConfig);
         const db = firebase.database();
-        
-        let me, peerNick, room, client, localTracks = [];
+        const auth = firebase.auth();
 
-        function show(id) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+        // Динамическая загрузка Agora только при необходимости
+        function loadAgora(cb) {
+            if (window.AgoraRTC) return cb();
+            const s = document.createElement('script');
+            s.src = "https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js";
+            s.onload = cb;
+            document.head.appendChild(s);
         }
 
-        // Вход
-        function entry() {
-            auth.signInWithEmailAndPassword(document.getElementById('e').value, document.getElementById('p').value)
-                .catch(err => alert(err.message));
-        }
+        window.Engine = {
+            me: null, peer: null, room: null, timer: null, client: null,
+            View: (id) => {
+                document.querySelectorAll('.viewport').forEach(v => v.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+            },
+            Notify: (t, b) => {
+                const n = document.getElementById('ntf');
+                document.getElementById('nt-t').innerText = t;
+                document.getElementById('nt-b').innerText = b;
+                n.classList.add('show');
+                setTimeout(() => n.classList.remove('show'), 3000);
+            },
+            Theme: { toggle: () => document.body.classList.toggle('light-mode') },
+            Auth: {
+                run: async () => {
+                    const e = document.getElementById('e-mail').value, p = document.getElementById('e-pass').value, n = document.getElementById('e-nick').value;
+                    try {
+                        await auth.signInWithEmailAndPassword(e, p);
+                    } catch {
+                        if(n) {
+                            const r = await auth.createUserWithEmailAndPassword(e, p);
+                            await db.ref(`v38/users/${r.user.uid}`).set({ id: n, uid: r.user.uid });
+                            await db.ref(`v38/map/${n}`).set(r.user.uid);
+                        } else alert("Error or Fill Nick for Reg");
+                    }
+                }
+            },
+            Net: {
+                link: async () => {
+                    const nick = document.getElementById('f-nick').value;
+                    const s = await db.ref(`v38/map/${nick}`).get();
+                    if(s.exists()) {
+                        const uid = s.val();
+                        await db.ref(`v38/friends/${Engine.me.uid}/${uid}`).set({ id: nick, uid: uid });
+                        await db.ref(`v38/friends/${uid}/${Engine.me.uid}`).set({ id: Engine.me.id, uid: Engine.me.uid });
+                        Engine.Notify("LINKED", "Agent added");
+                    }
+                }
+            },
+            Call: {
+                init: async (type) => {
+                    const room = [Engine.me.uid, Engine.peer.uid].sort().join("");
+                    await db.ref(`v38/calls/${Engine.peer.uid}`).set({ from: Engine.me.id, from_uid: Engine.me.uid, room, type, status: 'request' });
+                    Engine.Call.openUI(Engine.peer.id, type, 'CALLING...');
+                },
+                answer: () => db.ref(`v38/calls/${Engine.me.uid}`).update({ status: 'accepted' }),
+                stop: async () => {
+                    if(Engine.client) await Engine.client.leave();
+                    clearInterval(Engine.timer);
+                    db.ref(`v38/calls/${Engine.me.uid}`).remove();
+                    if(Engine.peer) db.ref(`v38/calls/${Engine.peer.uid}`).remove();
+                    document.getElementById('call-ui').classList.remove('active');
+                },
+                openUI: (name, type, status) => {
+                    document.getElementById('c-name').innerText = name;
+                    document.getElementById('c-status').innerText = status;
+                    document.getElementById('call-ui').classList.add('active');
+                },
+                joinAgora: (room, type) => {
+                    loadAgora(async () => {
+                        if(!Engine.client) Engine.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                        const appId = type === 'video' ? "1a8f4707f44e49ca81e2903dc2bab4a7" : "e3af51022f9541388ad48fa2675fc3fb";
+                        await Engine.client.join(appId, room, null, Engine.me.uid);
+                        const a = await AgoraRTC.createMicrophoneAudioTrack();
+                        if(type === 'video') {
+                            const v = await AgoraRTC.createCameraVideoTrack();
+                            v.play("local-player");
+                            await Engine.client.publish([a, v]);
+                        } else await Engine.client.publish([a]);
+                        
+                        Engine.client.on("user-published", async (u, type) => {
+                            await Engine.client.subscribe(u, type);
+                            if(type === "video") u.videoTrack.play("remote-player");
+                            if(type === "audio") u.audioTrack.play();
+                        });
+                        document.getElementById('c-status').innerText = "LIVE";
+                    });
+                }
+            },
+            Media: {
+                send: () => {
+                    const v = document.getElementById('m-val').value; if(!v) return;
+                    db.ref(`v38/msgs/${Engine.room}`).push({ sid: Engine.me.uid, type: 'text', content: v });
+                    document.getElementById('m-val').value = "";
+                }
+            }
+        };
 
         auth.onAuthStateChanged(u => {
             if(u) {
-                // В этом чате ник спрашиваем один раз для простоты
-                const nick = prompt("Твой ник:");
-                me = { n: nick, uid: u.uid };
-                document.getElementById('my-nick').innerText = nick;
-                peerNick = prompt("Ник друга:");
-                room = [u.uid, peerNick].sort().join("");
-                
-                show('scr-main');
-                listenMessages();
-                listenCalls();
-            } else show('scr-auth');
+                db.ref(`v38/users/${u.uid}`).on('value', s => {
+                    Engine.me = s.val(); if(!Engine.me) return;
+                    Engine.View('scr-hub');
+                    document.getElementById('my-name').innerText = Engine.me.id;
+                    
+                    db.ref(`v38/calls/${u.uid}`).on('value', cs => {
+                        if(cs.exists()) {
+                            const d = cs.val(); Engine.Call.openUI(d.from, d.type, d.status === 'request' ? 'INCOMING...' : 'LIVE');
+                            if(d.status === 'request') document.getElementById('btn-answer').style.display = "block";
+                            if(d.status === 'accepted') Engine.Call.joinAgora(d.room, d.type);
+                        } else {
+                            document.getElementById('call-ui').classList.remove('active');
+                        }
+                    });
+
+                    db.ref(`v38/friends/${u.uid}`).on('value', fs => {
+                        const l = document.getElementById('agent-list'); l.innerHTML = "";
+                        fs.forEach(f => {
+                            const d = f.val();
+                            const div = document.createElement('div');
+                            div.className = "agent-card";
+                            div.innerHTML = `<div class="agent-ava">${d.id[0]}</div><b>${d.id}</b>`;
+                            div.onclick = () => {
+                                Engine.peer = d; Engine.room = [Engine.me.uid, d.uid].sort().join("");
+                                document.getElementById('p-name').innerText = d.id; Engine.View('scr-chat');
+                                db.ref(`v38/msgs/${Engine.room}`).off();
+                                db.ref(`v38/msgs/${Engine.room}`).on('value', ms => {
+                                    const st = document.getElementById('chat-stream'); st.innerHTML = "";
+                                    ms.forEach(m => {
+                                        const msg = m.val();
+                                        const mel = document.createElement('div');
+                                        mel.className = `msg ${msg.sid === Engine.me.uid ? 'me' : 'him'}`;
+                                        mel.innerText = msg.content;
+                                        st.appendChild(mel);
+                                    });
+                                    st.scrollTop = st.scrollHeight;
+                                });
+                            };
+                            l.appendChild(div);
+                        });
+                    });
+                });
+            } else Engine.View('scr-auth');
         });
-
-        function listenMessages() {
-            db.ref('v38/chat/' + room).on('value', s => {
-                const b = document.getElementById('msgs'); b.innerHTML = "";
-                s.forEach(m => {
-                    b.innerHTML += `<div><small>${m.val().s}:</small> ${m.val().t}</div>`;
-                });
-                b.scrollTop = b.scrollHeight;
-            });
-        }
-
-        function sendMsg() {
-            const v = document.getElementById('m').value;
-            if(!v) return;
-            db.ref('v38/chat/' + room).push({s: me.n, t: v});
-            document.getElementById('m').value = "";
-        }
-
-        // --- ЛОГИКА ВИДЕО (ЗАГРУЖАЕТСЯ ТОЛЬКО ПРИ ЗВОНКЕ) ---
-        function loadAgora(callback) {
-            if (window.AgoraRTC) return callback();
-            const script = document.createElement('script');
-            script.src = "https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js";
-            script.onload = callback;
-            document.head.appendChild(script);
-        }
-
-        async function startCall() {
-            db.ref('v38/calls/' + peerNick).set({ from: me.n, rm: room, st: 'req' });
-            initAgora(room);
-        }
-
-        function listenCalls() {
-            db.ref('v38/calls/' + me.n).on('value', s => {
-                if(s.exists() && s.val().st === 'req') {
-                    if(confirm("Звонок от " + s.val().from)) {
-                        db.ref('v38/calls/' + me.n).update({ st: 'ok' });
-                        initAgora(s.val().rm);
-                    }
-                }
-            });
-        }
-
-        function initAgora(rm) {
-            loadAgora(async () => {
-                document.getElementById('v-wrap').style.display = 'block';
-                if(!client) client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-                
-                await client.join("1a8f4707f44e49ca81e2903dc2bab4a7", rm, null, me.uid);
-                const a = await AgoraRTC.createMicrophoneAudioTrack();
-                const v = await AgoraRTC.createCameraVideoTrack();
-                localTracks = [a, v];
-                v.play("local-v");
-                await client.publish(localTracks);
-
-                client.on("user-published", async (user, type) => {
-                    await client.subscribe(user, type);
-                    if(type === "video") user.videoTrack.play("remote-v");
-                    if(type === "audio") user.audioTrack.play();
-                });
-            });
-        }
-
-        async function endCall() {
-            localTracks.forEach(t => { t.stop(); t.close(); });
-            if(client) await client.leave();
-            document.getElementById('v-wrap').style.display = 'none';
-            db.ref('v38/calls/' + me.n).remove();
-        }
     </script>
 </body>
 </html>
