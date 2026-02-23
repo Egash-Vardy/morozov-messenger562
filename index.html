@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ULTRA V38 | SECURE</title>
+    <title>MOROZOV ULTRA</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -13,105 +13,76 @@
     <link rel="manifest" href="manifest.json">
 
     <style>
-        :root { --bg: #000; --surf: #111; --accent: #007aff; --text: #fff; --red: #ff3b30; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
-        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
-        
-        .viewport { position: absolute; inset: 0; display: none; flex-direction: column; background: var(--bg); }
+        :root { --bg: #000; --accent: #007aff; --text: #fff; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; }
+        .viewport { position: absolute; inset: 0; display: none; flex-direction: column; }
         .viewport.active { display: flex; }
-
-        #ntf { position: fixed; top: -100px; left: 10px; right: 10px; background: var(--accent); padding: 15px; border-radius: 15px; transition: 0.5s; z-index: 9999; }
-        #ntf.show { top: 20px; }
-
-        header { padding: 50px 20px 20px; background: var(--surf); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
+        header { padding: 50px 20px 20px; background: #111; display: flex; justify-content: space-between; border-bottom: 1px solid #222; }
         .scroller { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        
-        input { width: 100%; background: #222; border: 1px solid #333; padding: 15px; border-radius: 12px; color: #fff; margin-bottom: 10px; outline: none; }
+        input { width: 100%; background: #222; border: 1px solid #333; padding: 15px; border-radius: 12px; color: #fff; margin-bottom: 10px; box-sizing: border-box; }
         button { width: 100%; background: var(--accent); color: #fff; padding: 15px; border: none; border-radius: 12px; font-weight: bold; }
-
         .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; margin: 5px 0; }
         .me { align-self: flex-end; background: var(--accent); }
         .him { align-self: flex-start; background: #333; }
-
         #call-ui { position: fixed; inset: 0; background: #000; z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #remote-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-        #local-video { position: absolute; top: 40px; right: 20px; width: 100px; height: 150px; border-radius: 10px; overflow: hidden; border: 2px solid #fff; z-index: 10; }
+        #remote-video { position: absolute; inset: 0; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
 
-    <div id="ntf"><b id="nt-t"></b><br><small id="nt-b"></small></div>
-
     <div id="call-ui">
         <div id="remote-video"></div>
-        <div id="local-video"></div>
         <div style="position:relative; z-index:20; text-align:center;">
-            <h2 id="c-name">Calling...</h2>
-            <button onclick="Engine.Call.stop()" style="background:var(--red); width:80px; height:80px; border-radius:50%; margin-top:200px;">✖</button>
-            <button id="btn-answer" onclick="Engine.Call.answer()" style="background:green; width:80px; height:80px; border-radius:50%; display:none;">✔</button>
+            <h2 id="c-name">Вызов...</h2>
+            <button onclick="Engine.Call.stop()" style="background:red; width:70px; height:70px; border-radius:50%;">✖</button>
+            <button id="btn-answer" onclick="Engine.Call.answer()" style="background:green; width:70px; height:70px; border-radius:50%; display:none;">✔</button>
         </div>
     </div>
 
     <section id="scr-auth" class="viewport active">
-        <div style="padding:40px; margin:auto; width:100%;">
-            <h1 style="text-align:center; margin-bottom:30px;">ULTRA V38</h1>
+        <div style="padding:40px; margin:auto; width:100%; box-sizing: border-box;">
+            <h1 style="text-align:center;">ULTRA V38</h1>
             <input type="email" id="e-mail" placeholder="Email">
             <input type="password" id="e-pass" placeholder="Password">
-            <input type="text" id="e-nick" placeholder="Nick (for registration)">
-            <button onclick="Engine.Auth.run()">ENTER</button>
+            <input type="text" id="e-nick" placeholder="Ник (для регистрации)">
+            <button onclick="Engine.Auth.run()">ВОЙТИ</button>
         </div>
     </section>
 
     <section id="scr-hub" class="viewport">
         <header><b>ULTRA HUB</b></header>
-        <div style="padding:15px;"><input type="text" id="f-nick" placeholder="Add friend by nick..."><button onclick="Engine.Net.link()">LINK</button></div>
+        <div style="padding:15px;"><input type="text" id="f-nick" placeholder="Ник друга..."><button onclick="Engine.Net.link()">ДОБАВИТЬ</button></div>
         <div id="agent-list" class="scroller"></div>
     </section>
 
     <section id="scr-chat" class="viewport">
-        <header>
-            <b onclick="Engine.View('scr-hub')">← BACK</b>
-            <b id="p-name">Agent</b>
-            <div style="display:flex; gap:15px;">
-                <span onclick="Engine.Call.init('audio')">📞</span>
-                <span onclick="Engine.Call.init('video')">📹</span>
-            </div>
-        </header>
+        <header><b onclick="Engine.View('scr-hub')">←</b> <b id="p-name">Чат</b> <span onclick="Engine.Call.init('video')">📹</span></header>
         <div id="chat-stream" class="scroller"></div>
         <div style="padding:15px; display:flex; gap:10px; background:#111;">
-            <input type="text" id="m-val" placeholder="Message...">
-            <button onclick="Engine.Media.send()" style="width:80px;">SEND</button>
+            <input type="text" id="m-val" placeholder="Сообщение...">
+            <button onclick="Engine.Media.send()" style="width:80px;">ОТПР</button>
         </div>
     </section>
 
     <script>
-        // --- КОНФИГУРАЦИЯ ---
-        const AGORA_APP_ID = "1a8f4707f44e49ca81e2903dc2bab4a7"; // Замени на новый из консоли!
-        
-        const firebaseConfig = {
+        const AGORA_ID = "1a8f4707f44e49ca81e2903dc2bab4a7";
+        const fbConfig = {
             apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk",
             databaseURL: "https://morozov-ultra-default-rtdb.firebaseio.com",
             projectId: "morozov-ultra"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(fbConfig);
         const auth = firebase.auth();
         const db = firebase.database();
-        const agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-        let localTracks = { v: null, a: null };
+        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        let localTracks = [];
 
-        // --- ЛОГИКА ---
         window.Engine = {
             me: null, peer: null, room: null,
             View: (id) => {
                 document.querySelectorAll('.viewport').forEach(v => v.classList.remove('active'));
                 document.getElementById(id).classList.add('active');
-            },
-            Notify: (t, b) => {
-                const n = document.getElementById('ntf');
-                document.getElementById('nt-t').innerText = t;
-                document.getElementById('nt-b').innerText = b;
-                n.classList.add('show'); setTimeout(() => n.classList.remove('show'), 3000);
             },
             Auth: {
                 run: async () => {
@@ -121,7 +92,7 @@
                             const r = await auth.createUserWithEmailAndPassword(e, p);
                             await db.ref(`v38/users/${r.user.uid}`).set({ id: n, uid: r.user.uid });
                             await db.ref(`v38/map/${n}`).set(r.user.uid);
-                        } else alert("Error or User not found");
+                        }
                     }
                 }
             },
@@ -133,7 +104,6 @@
                         const uid = s.val();
                         await db.ref(`v38/friends/${Engine.me.uid}/${uid}`).set({ id: nick, uid: uid });
                         await db.ref(`v38/friends/${uid}/${Engine.me.uid}`).set({ id: Engine.me.id, uid: Engine.me.uid });
-                        Engine.Notify("SUCCESS", "Agent linked");
                     }
                 }
             },
@@ -145,20 +115,17 @@
                 },
                 answer: () => db.ref(`v38/calls/${Engine.me.uid}`).update({ status: 'accepted' }),
                 stop: async () => {
-                    if(localTracks.v) { localTracks.v.close(); }
-                    if(localTracks.a) { localTracks.a.close(); }
-                    await agoraClient.leave();
+                    localTracks.forEach(t => { t.stop(); t.close(); });
+                    await client.leave();
                     db.ref(`v38/calls/${Engine.me.uid}`).remove();
                     document.getElementById('call-ui').style.display = 'none';
                 },
-                join: async (room, type) => {
-                    await agoraClient.join(AGORA_APP_ID, room, null, Engine.me.uid);
-                    localTracks.a = await AgoraRTC.createMicrophoneAudioTrack();
-                    if(type === 'video') {
-                        localTracks.v = await AgoraRTC.createCameraVideoTrack();
-                        localTracks.v.play("local-video");
-                        await agoraClient.publish([localTracks.a, localTracks.v]);
-                    } else { await agoraClient.publish([localTracks.a]); }
+                join: async (room) => {
+                    await client.join(AGORA_ID, room, null, Engine.me.uid);
+                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                    const video = await AgoraRTC.createCameraVideoTrack();
+                    localTracks = [audio, video];
+                    await client.publish(localTracks);
                     document.getElementById('btn-answer').style.display = 'none';
                 }
             },
@@ -171,36 +138,29 @@
             }
         };
 
-        // Слушатели Firebase
         auth.onAuthStateChanged(u => {
             if(u) {
                 db.ref(`v38/users/${u.uid}`).on('value', s => {
                     Engine.me = s.val();
                     Engine.View('scr-hub');
-                    
-                    // Слушаем входящие вызовы
                     db.ref(`v38/calls/${u.uid}`).on('value', cs => {
                         if(cs.exists()) {
                             const d = cs.val();
                             document.getElementById('call-ui').style.display = 'flex';
                             document.getElementById('c-name').innerText = d.from;
                             if(d.status === 'request') document.getElementById('btn-answer').style.display = 'block';
-                            if(d.status === 'accepted') Engine.Call.join(d.room, d.type);
+                            if(d.status === 'accepted') Engine.Call.join(d.room);
                         } else { document.getElementById('call-ui').style.display = 'none'; }
                     });
-
-                    // Список друзей
                     db.ref(`v38/friends/${u.uid}`).on('value', fs => {
                         const l = document.getElementById('agent-list'); l.innerHTML = "";
                         fs.forEach(f => {
                             const d = f.val();
                             const div = document.createElement('div');
-                            div.style.padding = "15px"; div.style.background = "#222"; div.style.borderRadius = "10px";
-                            div.innerText = d.id;
+                            div.style.padding = "15px"; div.style.background = "#222"; div.style.margin = "5px 0"; div.innerText = d.id;
                             div.onclick = () => {
                                 Engine.peer = d; Engine.room = [Engine.me.uid, d.uid].sort().join("");
-                                Engine.View('scr-chat');
-                                document.getElementById('p-name').innerText = d.id;
+                                Engine.View('scr-chat'); document.getElementById('p-name').innerText = d.id;
                                 db.ref(`v38/msgs/${Engine.room}`).on('value', ms => {
                                     const st = document.getElementById('chat-stream'); st.innerHTML = "";
                                     ms.forEach(m => {
@@ -214,27 +174,22 @@
                                 });
                             };
                             l.appendChild(div);
-                            
-                            // Авто-вход в звонок если мы звоним
                             db.ref(`v38/calls/${d.uid}`).on('value', out => {
-                                if(out.exists() && out.val().from_uid === u.uid && out.val().status === 'accepted') Engine.Call.join(out.val().room, out.val().type);
+                                if(out.exists() && out.val().from_uid === u.uid && out.val().status === 'accepted') Engine.Call.join(out.val().room);
                             });
                         });
                     });
                 });
-            } else { Engine.View('scr-auth'); }
+            } else Engine.View('scr-auth');
         });
 
-        agoraClient.on("user-published", async (u, type) => {
-            await agoraClient.subscribe(u, type);
+        client.on("user-published", async (u, type) => {
+            await client.subscribe(u, type);
             if(type === "video") u.videoTrack.play("remote-video");
             if(type === "audio") u.audioTrack.play();
         });
 
-        // Регистрация Service Worker для PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
 </html>
