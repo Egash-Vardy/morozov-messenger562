@@ -3,18 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEST BOOT</title>
+    <title>ULTRA V39 | STEP 2</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+        .container { width: 80%; padding: 20px; border: 1px solid #333; border-radius: 15px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #111; border: 1px solid #444; color: #fff; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #007aff; border: none; color: #fff; font-weight: bold; border-radius: 8px; }
+        #db-status { font-size: 12px; color: #555; margin-bottom: 15px; }
+    </style>
 </head>
-<body style="background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+<body>
 
-    <h1 id="status">СИСТЕМА ЖДЕТ</h1>
-    <button id="test-btn" style="padding: 20px; background: red; color: white; border: none; border-radius: 10px;" onclick="check()">НАЖМИ МЕНЯ</button>
+    <div class="container">
+        <h1>ULTRA V39</h1>
+        <div id="db-status">ПРОВЕРКА СВЯЗИ...</div>
+        
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="pass" placeholder="Password">
+        <button onclick="login()">ПРОВЕРИТЬ ВХОД</button>
+    </div>
 
     <script>
-        function check() {
-            document.getElementById('status').innerText = "СКРИПТЫ РАБОТАЮТ!";
-            document.getElementById('test-btn').style.background = "green";
-            alert("Если ты это видишь, значит JS на телефоне активен!");
+        // Твой конфиг
+        const firebaseConfig = {
+            apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk",
+            databaseURL: "https://morozov-ultra-default-rtdb.firebaseio.com",
+            projectId: "morozov-ultra"
+        };
+
+        // Инициализация
+        try {
+            firebase.initializeApp(firebaseConfig);
+            document.getElementById('db-status').innerText = "СВЯЗЬ С БАЗОЙ: OK";
+            document.getElementById('db-status').style.color = "#34c759";
+        } catch (e) {
+            document.getElementById('db-status').innerText = "ОШИБКА ПОДКЛЮЧЕНИЯ";
+            document.getElementById('db-status').style.color = "red";
+        }
+
+        function login() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            
+            firebase.auth().signInWithEmailAndPassword(e, p)
+                .then(() => { alert("ВХОД ВЫПОЛНЕН!"); })
+                .catch(err => { alert("ОШИБКА: " + err.message); });
         }
     </script>
 </body>
