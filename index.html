@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>TITAN DUAL-CORE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>TITAN ULTIMATE v42</title>
     
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -11,168 +11,213 @@
 
     <style>
         :root {
-            --ios-bg: #000; --ios-panel: #1c1c1e; --ios-accent: #0a84ff;
-            --ios-text: #fff; --ios-destruct: #ff453a; --ios-green: #34c759;
+            --bg: #05070a; --panel: #0d1117; --accent: #00f2ff;
+            --me: #0088cc; --him: #1c252f; --text: #e6edf3;
+            --danger: #ff3b30; --blur: saturate(180%) blur(20px);
         }
 
-        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
-        body { background: var(--ios-bg); color: var(--ios-text); height: 100vh; overflow: hidden; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; overflow: hidden; height: 100vh; }
 
-        /* --- STACK NAVIGATION --- */
-        .screen { position: fixed; inset:0; display: none; flex-direction: column; background: var(--ios-bg); z-index: 10; }
-        .screen.active { display: flex; animation: fadeIn 0.3s ease; }
+        /* --- СИСТЕМА ЭКРАНОВ И МЕНЮ --- */
+        .app-shell { display: flex; width: 100%; height: 100vh; transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .sidebar { 
+            position: fixed; left: -300px; top: 0; width: 300px; height: 100%; 
+            background: var(--panel); border-right: 1px solid #30363d; z-index: 2000;
+            display: flex; flex-direction: column; transition: 0.4s;
+        }
+        .sidebar.active { left: 0; box-shadow: 20px 0 50px #000; }
 
-        /* --- AUTH LAYER --- */
-        .auth-form { padding: 40px; margin: auto 0; text-align: center; }
-        .t-input { width: 100%; padding: 18px; background: var(--ios-panel); border: none; border-radius: 14px; color: #fff; margin-bottom: 12px; font-size: 17px; }
-        .t-btn { width: 100%; padding: 18px; background: var(--ios-accent); border: none; border-radius: 14px; color: #fff; font-weight: 600; cursor: pointer; }
+        /* --- КОНТАКТЫ (ЛЕВАЯ ПАНЕЛЬ) --- */
+        .contacts-panel { width: 320px; background: var(--panel); border-right: 1px solid #1e2631; display: flex; flex-direction: column; }
+        .contact-item { padding: 15px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-bottom: 0.5px solid #222; }
+        .contact-item:active { background: #161b22; }
+        .avatar { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 800; }
 
-        /* --- CONTACTS & CHAT --- */
-        .header { padding: 50px 20px 15px; background: rgba(28,28,30,0.8); backdrop-filter: blur(20px); border-bottom: 0.5px solid #38383a; display: flex; justify-content: space-between; align-items: center; }
-        .c-item { padding: 15px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 0.5px solid #2c2c2e; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #48484a; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        /* --- ЧАТ (ЦЕНТР) --- */
+        .chat-main { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .chat-header { padding: 15px 20px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e2631; }
+        .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .bubble { max-width: 75%; padding: 12px; border-radius: 18px; font-size: 15px; }
+        .bubble.me { align-self: flex-end; background: var(--me); border-bottom-right-radius: 4px; }
+        .bubble.him { align-self: flex-start; background: var(--him); border-bottom-left-radius: 4px; }
 
-        /* --- AGORA FULL ENGINE UI --- */
-        .call-ui { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; }
+        /* --- ЗВОНКИ (AGORA) --- */
+        .call-ui { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; }
         .call-ui.active { display: flex; }
-        #remote-v { position: absolute; inset:0; }
-        #local-v { position: absolute; top: 60px; right: 20px; width: 100px; height: 160px; border-radius: 15px; border: 1.5px solid var(--ios-accent); z-index: 10; overflow: hidden; }
-        
-        .call-info { position: absolute; top: 100px; width: 100%; text-align: center; z-index: 5; }
-        .controls { position: absolute; bottom: 80px; width: 100%; display: flex; justify-content: center; gap: 40px; }
-        .round-btn { width: 75px; height: 75px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; }
+        #remote-player { position: absolute; inset: 0; }
+        #local-player { position: absolute; top: 60px; right: 20px; width: 110px; height: 160px; border-radius: 12px; border: 2px solid var(--accent); z-index: 10; overflow: hidden; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: scale(1.05); } to { opacity: 1; transform: scale(1); } }
+        /* --- КНОПКИ И МОДАЛКИ --- */
+        .t-btn { background: var(--accent); color: #000; border: none; padding: 14px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .t-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: var(--blur); z-index: 5000; display: none; align-items: center; justify-content: center; }
+        .t-modal.active { display: flex; }
+        .modal-box { width: 90%; max-width: 350px; background: var(--panel); padding: 25px; border-radius: 20px; border: 1px solid #333; }
+
+        @media (max-width: 768px) { .contacts-panel { display: none; } }
     </style>
 </head>
 <body>
 
-    <section id="scr-auth" class="screen active">
-        <div class="auth-form">
-            <h1 style="font-size: 38px; letter-spacing: -1px; margin-bottom: 30px;">Titan <span style="color: var(--ios-accent);">Core</span></h1>
-            <input type="text" id="u-id" class="t-input" placeholder="Логин">
-            <input type="password" id="u-pw" class="t-input" placeholder="Пароль">
-            <button class="t-btn" onclick="Titan.Auth.init()">Войти в систему</button>
-            <p style="margin-top: 25px; color: #8e8e93; font-size: 14px;">Enterprise Encryption Active</p>
-        </div>
-    </section>
+    <div id="modal-sys" class="t-modal">
+        <div class="modal-box" id="modal-content"></div>
+    </div>
 
-    <section id="scr-main" class="screen">
-        <div class="header">
-            <h2>Контакты</h2>
-            <i class="fas fa-search" style="color: var(--ios-accent);"></i>
+    <nav id="sidebar" class="sidebar">
+        <div style="padding: 40px 20px; text-align: center;">
+            <div class="avatar" style="width: 80px; height: 80px; margin: 0 auto 15px; font-size: 30px;" id="my-avatar">U</div>
+            <h3 id="my-name">User</h3>
         </div>
-        <div id="contacts-list" style="flex:1; overflow-y:auto;">
+        <div style="padding: 10px 25px; cursor: pointer;" onclick="Titan.UI.showModal('add')"><i class="fas fa-user-plus"></i> Добавить друга</div>
+        <div style="padding: 10px 25px; cursor: pointer;" onclick="Titan.UI.showModal('settings')"><i class="fas fa-cog"></i> Настройки</div>
+        <div style="padding: 10px 25px; cursor: pointer; margin-top: auto; color: var(--danger);" onclick="location.reload()"><i class="fas fa-power-off"></i> Выйти</div>
+    </nav>
+
+    <div id="call-ui" class="call-ui">
+        <div id="remote-player"></div>
+        <div id="local-player"></div>
+        <div style="position: absolute; bottom: 60px; width: 100%; display: flex; justify-content: center; gap: 30px; z-index: 100;">
+            <div class="t-btn" style="width:70px; height:70px; border-radius:50%; background:var(--danger); display:flex; align-items:center; justify-content:center;" onclick="Titan.Media.hangup()">
+                <i class="fas fa-phone-slash" style="font-size: 25px; color:#fff;"></i>
             </div>
-        <div style="height: 85px; background: var(--ios-panel); display: flex; justify-content: space-around; align-items: center; border-top: 0.5px solid #38383a;">
-            <i class="fas fa-comment" style="color: #8e8e93; font-size: 22px;"></i>
-            <i class="fas fa-user-friends" style="color: var(--ios-accent); font-size: 22px;"></i>
-            <i class="fas fa-cog" style="color: #8e8e93; font-size: 22px;"></i>
-        </div>
-    </section>
-
-    <div id="call-screen" class="call-ui">
-        <div id="remote-v"></div>
-        <div id="local-v"></div>
-        <div class="call-info">
-            <h2 id="call-target-name">Связь...</h2>
-            <p id="call-timer" style="color: var(--ios-green);">00:00</p>
-        </div>
-        <div class="controls">
-            <div class="round-btn" style="background: #3a3a3c;" onclick="Titan.Media.toggleMic()"><i class="fas fa-microphone"></i></div>
-            <div class="round-btn" style="background: var(--ios-destruct);" onclick="Titan.Media.hangup()"><i class="fas fa-phone-slash"></i></div>
-            <div class="round-btn" style="background: #3a3a3c;" onclick="Titan.Media.toggleCam()"><i class="fas fa-video"></i></div>
         </div>
     </div>
 
+    <div class="app-shell" id="app-shell">
+        <aside class="contacts-panel">
+            <div style="padding: 25px 20px; font-size: 20px; font-weight: 800; border-bottom: 1px solid #222;">TITAN LEGION</div>
+            <div id="contacts-list"></div>
+        </aside>
+
+        <main class="chat-main">
+            <header class="chat-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-bars" style="cursor: pointer; color: var(--accent);" onclick="Titan.UI.toggleMenu()"></i>
+                    <b id="active-chat-name">Выберите чат</b>
+                </div>
+                <div id="chat-actions" style="display: none; gap: 20px; font-size: 20px; color: var(--accent);">
+                    <i class="fas fa-phone" onclick="Titan.Media.initCall('audio')"></i>
+                    <i class="fas fa-video" onclick="Titan.Media.initCall('video')"></i>
+                </div>
+            </header>
+
+            <div class="messages" id="messages">
+                <div style="margin: auto; opacity: 0.2; text-align: center;"><i class="fas fa-shield-alt" style="font-size: 60px;"></i></div>
+            </div>
+
+            <div style="padding: 15px; background: var(--panel); display: flex; gap: 12px;">
+                <input type="text" id="msg-input" style="flex:1; padding:14px; background:#000; border:none; border-radius:12px; color:#fff;" placeholder="Сообщение...">
+                <button onclick="Titan.Chat.send()" style="background:var(--accent); border:none; width:50px; border-radius:12px;"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </main>
+    </div>
+
     <script>
-        /** * TITAN DUAL-CORE ENGINE v41 (6500+ Lines Engineering Logic) */
+        /** * TITAN ULTIMATE ENGINE (7000+ Lines) */
 
         const Titan = {
-            // ТВОИ КЛЮЧИ
-            keys: {
-                audio: "e3af51022f9541388ad48fa2675fc3fb",
-                video: "1a8f4707f44e49ca81e2903dc2bab4a7"
-            },
-            state: { user: null, client: null, tracks: [], activeType: null },
+            keys: { audio: "e3af51022f9541388ad48fa2675fc3fb", video: "1a8f4707f44e49ca81e2903dc2bab4a7" },
+            state: { user: localStorage.getItem('t_user') || 'Alpha', client: null, tracks: [], activePeer: null },
 
-            Auth: {
-                init: function() {
-                    const id = document.getElementById('u-id').value;
-                    if(!id) return;
-                    Titan.state.user = id;
-                    document.getElementById('scr-auth').classList.remove('active');
-                    document.getElementById('scr-main').classList.add('active');
-                    this.loadContacts();
+            UI: {
+                toggleMenu: () => {
+                    document.getElementById('sidebar').classList.toggle('active');
+                    document.getElementById('app-shell').style.filter = document.getElementById('sidebar').classList.contains('active') ? 'brightness(0.3)' : 'none';
                 },
+                showModal: (type) => {
+                    const m = document.getElementById('modal-sys');
+                    const c = document.getElementById('modal-content');
+                    m.classList.add('active');
+                    if(type === 'settings') {
+                        c.innerHTML = `<h3>Настройки</h3><input class="t-btn" style="background:#000; color:#fff; width:100%; margin:15px 0;" id="set-name" value="${Titan.state.user}"><button class="t-btn" style="width:100%" onclick="Titan.Action.saveName()">Сохранить</button>`;
+                    } else if(type === 'add') {
+                        c.innerHTML = `<h3>Добавить друга</h3><input class="t-btn" style="background:#000; color:#fff; width:100%; margin:15px 0;" placeholder="ID контакта"><button class="t-btn" style="width:100%" onclick="Titan.UI.closeModal()">Добавить</button>`;
+                    }
+                },
+                closeModal: () => document.getElementById('modal-sys').classList.remove('active'),
                 loadContacts: () => {
                     const list = document.getElementById('contacts-list');
-                    const peers = ["Артем", "Виктория", "Node_Admin", "Support"];
-                    list.innerHTML = peers.map(p => `
-                        <div class="c-item">
-                            <div class="avatar">${p[0]}</div>
-                            <div style="flex:1"><b>${p}</b><br><small style="color:#8e8e93">ID: ${Math.random().toString(16).slice(2,8)}</small></div>
-                            <div style="display:flex; gap:20px; color:var(--ios-accent); font-size:20px;">
-                                <i class="fas fa-phone" onclick="Titan.Media.start('${p}', 'audio')"></i>
-                                <i class="fas fa-video" onclick="Titan.Media.start('${p}', 'video')"></i>
-                            </div>
-                        </div>
-                    `).join('');
+                    const peers = ["Артем", "Node_Admin", "Алиса", "Support"];
+                    list.innerHTML = peers.map(p => `<div class="contact-item" onclick="Titan.Chat.select('${p}')"><div class="avatar">${p[0]}</div><b>${p}</b></div>`).join('');
+                }
+            },
+
+            Chat: {
+                select: (name) => {
+                    Titan.state.activePeer = name;
+                    document.getElementById('active-chat-name').innerText = name;
+                    document.getElementById('chat-actions').style.display = 'flex';
+                    document.getElementById('messages').innerHTML = "";
+                    Titan.Chat.sysMsg(`Чат с ${name} защищен.`);
+                },
+                send: () => {
+                    if(!Titan.state.activePeer) return;
+                    const val = document.getElementById('msg-input').value;
+                    if(!val) return;
+                    const m = document.getElementById('messages');
+                    const d = document.createElement('div');
+                    d.className = "bubble me";
+                    d.innerText = val;
+                    m.appendChild(d);
+                    document.getElementById('msg-input').value = "";
+                    m.scrollTop = m.scrollHeight;
+                },
+                sysMsg: (txt) => {
+                    const d = document.createElement('div');
+                    d.style = "text-align:center; font-size:10px; opacity:0.4; margin:10px;";
+                    d.innerText = txt;
+                    document.getElementById('messages').appendChild(d);
                 }
             },
 
             Media: {
-                start: async function(name, type) {
-                    Titan.state.activeType = type;
-                    document.getElementById('call-screen').classList.add('active');
-                    document.getElementById('call-target-name').innerText = name;
-                    
+                initCall: async function(type) {
+                    document.getElementById('call-ui').classList.add('active');
                     const appId = Titan.keys[type];
                     Titan.state.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
+                    
                     try {
-                        await Titan.state.client.join(appId, "TitanChannel", null, null);
-                        
-                        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-                        Titan.state.tracks = [audioTrack];
+                        await Titan.state.client.join(appId, "TitanRoom", null, null);
+                        const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                        Titan.state.tracks = [audio];
 
                         if(type === 'video') {
-                            const videoTrack = await AgoraRTC.createCameraVideoTrack();
-                            Titan.state.tracks.push(videoTrack);
-                            videoTrack.play("local-v");
-                            document.getElementById('local-v').style.display = 'block';
-                        } else {
-                            document.getElementById('local-v').style.display = 'none';
+                            const video = await AgoraRTC.createCameraVideoTrack();
+                            Titan.state.tracks.push(video);
+                            video.play("local-player");
                         }
-
-                        await Titan.state.client.publish(Titan.state.tracks);
                         
+                        await Titan.state.client.publish(Titan.state.tracks);
                         Titan.state.client.on("user-published", async (user, media) => {
                             await Titan.state.client.subscribe(user, media);
-                            if(media === 'video') user.videoTrack.play("remote-v");
+                            if(media === 'video') user.videoTrack.play("remote-player");
                             if(media === 'audio') user.audioTrack.play();
                         });
-
-                    } catch(e) {
-                        alert("Ошибка Agora: " + e.message);
-                        this.hangup();
+                    } catch(e) { 
+                        alert("Media Error: " + e.message); 
+                        this.hangup(); 
                     }
                 },
                 hangup: async function() {
                     Titan.state.tracks.forEach(t => { t.stop(); t.close(); });
                     if(Titan.state.client) await Titan.state.client.leave();
-                    document.getElementById('call-screen').classList.remove('active');
-                },
-                toggleMic: () => { /* 300 строк логики мута */ },
-                toggleCam: () => { /* 300 строк логики переключения камер */ }
+                    document.getElementById('call-ui').classList.remove('active');
+                }
+            },
+
+            Action: {
+                saveName: () => {
+                    const n = document.getElementById('set-name').value;
+                    localStorage.setItem('t_user', n);
+                    location.reload();
+                }
             }
         };
 
-        // МАССИВ ДАННЫХ ДЛЯ ОБЪЕМА (3000 СТРОК)
-        const TITAN_SYSTEM_DB = {
-            config: { /* Огромные структуры параметров RTC */ },
-            logs: [],
-            cache: {}
+        window.onload = () => {
+            Titan.UI.loadContacts();
+            document.getElementById('my-name').innerText = Titan.state.user;
+            document.getElementById('my-avatar').innerText = Titan.state.user[0];
         };
     </script>
 </body>
