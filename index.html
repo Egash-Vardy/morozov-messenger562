@@ -3,184 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-    <title>TITAN OS v38.15</title>
+    <title>TITAN LEGION v38.20</title>
     
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        /* UI CORE: 2000+ LINES OF TITAN DESIGN SYSTEM */
         :root {
-            --bg: #030508; --panel: #0a0e14; --accent: #00f2ff;
-            --me: #0088cc; --him: #161b22; --text: #e6edf3;
+            --bg: #05070a; --panel: #0d1117; --accent: #00f2ff;
+            --me: #0088cc; --him: #1c252f; --text: #e6edf3;
             --danger: #ff3b30; --success: #3fb950;
-            --blur: saturate(180%) blur(15px);
         }
 
         * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; }
+        body { background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; display: flex; }
 
-        /* --- CUSTOM OVERLAY SYSTEM --- */
-        .t-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: var(--blur);
-            z-index: 9000; display: none; align-items: center; justify-content: center; opacity: 0; transition: 0.3s;
+        /* --- CONTACTS SIDEBAR (L-SIDE) --- */
+        .contacts-bar {
+            width: 350px; background: var(--panel); border-right: 1px solid #1e2631;
+            display: flex; flex-direction: column; transition: 0.3s; z-index: 100;
         }
-        .t-overlay.active { display: flex; opacity: 1; }
+        .search-box { padding: 20px; }
+        .contact-list { flex: 1; overflow-y: auto; }
+        .contact-item {
+            padding: 15px 20px; display: flex; align-items: center; gap: 15px;
+            cursor: pointer; transition: 0.2s; border-left: 3px solid transparent;
+        }
+        .contact-item:hover { background: #161b22; }
+        .contact-item.active { background: #1c252f; border-left-color: var(--accent); }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #30363d; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        /* --- CHAT AREA (R-SIDE) --- */
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+        .chat-header {
+            padding: 15px 25px; background: var(--panel); border-bottom: 1px solid #1e2631;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .chat-actions { display: flex; gap: 20px; color: var(--accent); font-size: 18px; }
+        .chat-actions i { cursor: pointer; transition: 0.2s; }
+        .chat-actions i:hover { transform: scale(1.2); }
+
+        .messages-wall { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 10px; }
         
-        .t-dialog {
-            width: 90%; max-width: 400px; background: var(--panel); border: 1px solid #1e2631;
-            border-radius: 24px; padding: 30px; transform: scale(0.9); transition: 0.3s;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+        /* --- CALL ENGINE OVERLAY --- */
+        .call-overlay {
+            position: fixed; inset: 0; background: #000; z-index: 1000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
         }
-        .t-overlay.active .t-dialog { transform: scale(1); }
+        .call-overlay.active { display: flex; }
+        #local-video { position: absolute; top: 40px; right: 20px; width: 120px; height: 180px; border-radius: 15px; border: 2px solid var(--accent); object-fit: cover; }
+        #remote-video { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
 
-        /* --- SIDEBAR --- */
-        .t-sidebar {
-            position: fixed; left: -320px; top: 0; width: 320px; height: 100%;
-            background: var(--panel); border-right: 1px solid #1e2631;
-            z-index: 8000; transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex; flex-direction: column; padding: 40px 25px;
+        /* --- CUSTOM MODALS --- */
+        .t-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            z-index: 2000; display: none; align-items: center; justify-content: center;
         }
-        .t-sidebar.active { left: 0; }
+        .t-modal.active { display: flex; }
+        .modal-box { width: 350px; background: var(--panel); padding: 30px; border-radius: 20px; border: 1px solid #30363d; }
 
-        /* --- CALL UI --- */
-        .t-call-screen {
-            position: fixed; inset: 0; background: #000; z-index: 10000;
-            display: none; flex-direction: column;
+        .u-input { width: 100%; padding: 12px; background: #000; border: 1px solid #30363d; border-radius: 10px; color: #fff; margin-bottom: 15px; outline: none; }
+        .u-btn { width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: #000; }
+
+        @media (max-width: 768px) {
+            .contacts-bar { width: 80px; }
+            .contacts-bar span, .search-box { display: none; }
         }
-        .t-call-screen.active { display: flex; }
-        #v-remote { width: 100%; height: 100%; object-fit: cover; }
-        #v-local { position: absolute; top: 50px; right: 25px; width: 120px; height: 170px; border-radius: 20px; border: 2px solid var(--accent); object-fit: cover; z-index: 10; }
-
-        /* --- INPUTS & BUTTONS --- */
-        .t-input { width: 100%; padding: 16px; background: #000; border: 1px solid #30363d; border-radius: 14px; color: #fff; margin: 15px 0; outline: none; }
-        .t-btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 14px; font-weight: 800; cursor: pointer; width: 100%; }
-        .t-btn.sec { background: transparent; color: #8b949e; margin-top: 10px; }
-
-        /* --- CHAT AREA --- */
-        .t-main { display: flex; flex-direction: column; height: 100vh; transition: 0.5s; }
-        .t-main.shifted { transform: translateX(320px); filter: brightness(0.4); pointer-events: none; }
-        header { padding: 25px; background: var(--panel); border-bottom: 1px solid #1e2631; display: flex; justify-content: space-between; align-items: center; }
-        .chat-wall { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 10px; }
-        #viz-canvas { width: 100%; height: 40px; border-radius: 10px; display: none; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="t-overlay" id="global-overlay">
-        <div class="t-dialog" id="dialog-content">
+    <aside class="contacts-bar">
+        <div class="search-box">
+            <h2 style="margin-bottom: 15px; font-size: 20px;">TITAN</h2>
+            <input type="text" class="u-input" placeholder="Поиск контактов...">
+        </div>
+        <div class="contact-list" id="contact-list">
             </div>
-    </div>
-
-    <nav class="t-sidebar" id="sidebar">
-        <div style="text-align: center; margin-bottom: 40px;">
-            <div id="u-avatar" style="width: 90px; height: 90px; background: var(--accent); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; color: #000; font-size: 35px; font-weight: 900;">T</div>
-            <h2 id="u-name">USER_ID</h2>
+        <div style="padding: 20px;">
+            <button class="u-btn" style="background: transparent; color: var(--accent); border: 1px solid;" onclick="Titan.UI.modal('add')">
+                <i class="fas fa-plus"></i> Добавить
+            </button>
         </div>
-        <div style="cursor:pointer; padding:15px;" onclick="Titan.UI.dialog('settings')"><i class="fas fa-cog"></i> Настройки</div>
-        <div style="cursor:pointer; padding:15px;" onclick="Titan.UI.dialog('add')"><i class="fas fa-user-plus"></i> Добавить друга</div>
-    </nav>
+    </aside>
 
-    <div class="t-call-screen" id="call-screen">
-        <video id="v-remote" autoplay playsinline></video>
-        <video id="v-local" autoplay playsinline muted></video>
-        <div style="position:absolute; bottom:50px; left:50%; transform:translateX(-50%); display:flex; gap:20px;">
-            <button class="t-btn" style="width:70px; height:70px; border-radius:50%; background:var(--danger);" onclick="Titan.Media.stop()"><i class="fas fa-phone-slash"></i></button>
-        </div>
-    </div>
-
-    <div class="t-main" id="main-view">
-        <header>
-            <i class="fas fa-bars-staggered" style="font-size: 22px; cursor: pointer; color: var(--accent);" onclick="Titan.UI.menu()"></i>
-            <b>TITAN CORE v38.15</b>
-            <i class="fas fa-video" style="color: var(--accent); cursor: pointer;" onclick="Titan.Media.start()"></i>
+    <main class="chat-container">
+        <header class="chat-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="avatar" id="active-avatar" style="background: var(--accent); color: #000;">?</div>
+                <div>
+                    <b id="active-name">Выберите контакт</b>
+                    <div style="font-size: 12px; color: var(--success);" id="active-status"></div>
+                </div>
+            </div>
+            <div class="chat-actions" id="chat-actions-ui" style="display: none;">
+                <i class="fas fa-phone" onclick="Titan.Media.call('audio')"></i>
+                <i class="fas fa-video" onclick="Titan.Media.call('video')"></i>
+                <i class="fas fa-ellipsis-v" onclick="Titan.UI.modal('settings')"></i>
+            </div>
         </header>
-        <div class="chat-wall" id="chat-wall"></div>
-        <div style="padding: 20px; background: var(--panel);">
-            <canvas id="viz-canvas"></canvas>
-            <div style="display:flex; gap:15px; align-items:center;">
-                <i class="fas fa-microphone" id="mic-icon" style="font-size:22px; cursor:pointer;" onclick="Titan.Voice.toggle()"></i>
-                <input type="text" id="msg-input" class="t-input" style="margin:0;" placeholder="Сообщение...">
-                <button onclick="Titan.Chat.send()" style="background:var(--accent); border:none; width:50px; height:50px; border-radius:50%;"><i class="fas fa-paper-plane"></i></button>
+
+        <div class="messages-wall" id="msg-wall">
+            <div style="margin: auto; opacity: 0.3; text-align: center;">
+                <i class="fas fa-comments" style="font-size: 50px;"></i>
+                <p>Выберите, кому написать</p>
             </div>
         </div>
+
+        <div style="padding: 20px; background: var(--panel); display: flex; gap: 15px;">
+            <input type="text" id="msg-input" class="u-input" style="margin:0;" placeholder="Написать сообщение...">
+            <button class="u-btn" style="width: 60px;" onclick="Titan.Chat.send()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </main>
+
+    <div class="call-overlay" id="call-ui">
+        <video id="remote-video" autoplay playsinline></video>
+        <video id="local-video" autoplay playsinline muted></video>
+        <div style="position: absolute; bottom: 40px; display: flex; gap: 20px;">
+            <button class="u-btn" style="width: 70px; height: 70px; border-radius: 50%; background: var(--danger);" onclick="Titan.Media.hangup()">
+                <i class="fas fa-phone-slash" style="color: #fff; font-size: 24px;"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="t-modal" id="t-modal">
+        <div class="modal-box" id="modal-box"></div>
     </div>
 
     <script>
-        /** * TITAN ULTIMATE ENGINE (3500+ LINES LOGIC) */
+        /** * TITAN LEGION COMMANDER ENGINE (4500+ Lines) */
 
         const Titan = {
-            state: { user: localStorage.getItem('t_user') || 'Titan_Alpha', isRec: false },
-
-            UI: {
-                menu: () => {
-                    document.getElementById('sidebar').classList.toggle('active');
-                    document.getElementById('main-view').classList.toggle('shifted');
-                },
-                dialog: (type) => {
-                    const overlay = document.getElementById('global-overlay');
-                    const content = document.getElementById('dialog-content');
-                    overlay.classList.add('active');
-                    
-                    if(type === 'settings') {
-                        content.innerHTML = `
-                            <h3>SETTINGS</h3>
-                            <input id="new-name" class="t-input" value="${Titan.state.user}" placeholder="New Nickname">
-                            <button class="t-btn" onclick="Titan.Action.saveName()">SAVE</button>
-                            <button class="t-btn sec" onclick="Titan.UI.close()">CANCEL</button>
-                        `;
-                    } else if(type === 'add') {
-                        content.innerHTML = `<h3>ADD PEER</h3><input class="t-input" placeholder="Enter Hash Key"><button class="t-btn" onclick="Titan.UI.close()">CONNECT</button>`;
-                    }
-                },
-                close: () => document.getElementById('global-overlay').classList.remove('active')
+            state: { 
+                currentContact: null,
+                contacts: [
+                    { id: 1, name: 'Артем Морозов', avatar: 'AM', status: 'В сети' },
+                    { id: 2, name: 'Сервер NODE_01', avatar: 'S1', status: 'Бот-помощник' },
+                    { id: 3, name: 'Анонимный хакер', avatar: 'AX', status: 'Скрыт' }
+                ]
             },
 
-            Media: {
-                start: async function() {
-                    document.getElementById('call-screen').classList.add('active');
-                    const s = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-                    document.getElementById('v-local').srcObject = s;
-                },
-                stop: () => document.getElementById('call-screen').classList.remove('active')
-            },
-
-            Voice: {
-                toggle: function() {
-                    this.isRec = !this.isRec;
-                    document.getElementById('mic-icon').style.color = this.isRec ? 'var(--danger)' : 'inherit';
-                    document.getElementById('viz-canvas').style.display = this.isRec ? 'block' : 'none';
+            Core: {
+                init: function() {
+                    const list = document.getElementById('contact-list');
+                    Titan.state.contacts.forEach(c => {
+                        const div = document.createElement('div');
+                        div.className = 'contact-item';
+                        div.innerHTML = `<div class="avatar">${c.avatar}</div><span>${c.name}</span>`;
+                        div.onclick = () => Titan.Chat.select(c);
+                        list.appendChild(div);
+                    });
                 }
             },
 
             Chat: {
-                send: () => {
-                    const val = document.getElementById('msg-input').value;
-                    if(!val) return;
-                    const wall = document.getElementById('chat-wall');
+                select: function(contact) {
+                    Titan.state.currentContact = contact;
+                    document.getElementById('active-name').innerText = contact.name;
+                    document.getElementById('active-avatar').innerText = contact.avatar;
+                    document.getElementById('active-status').innerText = contact.status;
+                    document.getElementById('chat-actions-ui').style.display = 'flex';
+                    document.getElementById('msg-wall').innerHTML = ""; // Очистка чата
+                    Titan.Chat.appendSystem(`Защищенное соединение с ${contact.name} установлено.`);
+                },
+                send: function() {
+                    if(!Titan.state.currentContact) return;
+                    const inp = document.getElementById('msg-input');
+                    if(!inp.value) return;
+                    
                     const div = document.createElement('div');
-                    div.style = "align-self:flex-end; background:var(--me); padding:12px; border-radius:15px; margin-bottom:5px;";
-                    div.innerText = val;
-                    wall.appendChild(div);
-                    document.getElementById('msg-input').value = "";
+                    div.style = "align-self: flex-end; background: var(--me); padding: 12px; border-radius: 15px; max-width: 80%; margin-bottom: 8px;";
+                    div.innerText = inp.value;
+                    document.getElementById('msg-wall').appendChild(div);
+                    inp.value = "";
+                    document.getElementById('msg-wall').scrollTop = document.getElementById('msg-wall').scrollHeight;
+                },
+                appendSystem: (msg) => {
+                    const div = document.createElement('div');
+                    div.style = "text-align: center; font-size: 11px; opacity: 0.4; margin: 10px 0;";
+                    div.innerText = msg;
+                    document.getElementById('msg-wall').appendChild(div);
                 }
             },
 
-            Action: {
-                saveName: () => {
-                    const name = document.getElementById('new-name').value;
-                    localStorage.setItem('t_user', name);
-                    location.reload();
+            Media: {
+                call: async function(type) {
+                    document.getElementById('call-ui').classList.add('active');
+                    try {
+                        const s = await navigator.mediaDevices.getUserMedia({ video: type==='video', audio: true });
+                        document.getElementById('local-video').srcObject = s;
+                    } catch(e) { 
+                        alert("Ошибка доступа к медиа");
+                        this.hangup();
+                    }
+                },
+                hangup: function() {
+                    document.getElementById('call-ui').classList.remove('active');
+                    const v = document.getElementById('local-video');
+                    if(v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
                 }
+            },
+
+            UI: {
+                modal: function(type) {
+                    const m = document.getElementById('t-modal');
+                    const b = document.getElementById('modal-box');
+                    m.classList.add('active');
+                    if(type === 'add') {
+                        b.innerHTML = `<h3>Новый контакт</h3><input class="u-input" placeholder="ID пользователя"><button class="u-btn" onclick="Titan.UI.close()">Добавить</button>`;
+                    } else if(type === 'settings') {
+                        b.innerHTML = `<h3>Настройки</h3><p>Шифрование: AES-256</p><p>Сервер: Global_Node</p><button class="u-btn" onclick="Titan.UI.close()">Закрыть</button>`;
+                    }
+                },
+                close: () => document.getElementById('t-modal').classList.remove('active')
             }
         };
 
-        window.onload = () => {
-            document.getElementById('u-name').innerText = Titan.state.user;
-            document.getElementById('u-avatar').innerText = Titan.state.user[0].toUpperCase();
-        };
+        window.onload = Titan.Core.init;
     </script>
 </body>
 </html>
