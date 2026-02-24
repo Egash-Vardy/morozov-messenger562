@@ -3,57 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-    <title>TITAN ULTIMATE v42</title>
+    <title>TITAN | AUDIO & CONTROL</title>
     
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         :root {
             --bg: #05070a; --panel: #0d1117; --accent: #00f2ff;
             --me: #0088cc; --him: #1c252f; --text: #e6edf3;
-            --danger: #ff3b30; --blur: saturate(180%) blur(20px);
+            --danger: #ff3b30; --success: #34c759;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; overflow: hidden; height: 100vh; }
 
-        /* --- СИСТЕМА ЭКРАНОВ И МЕНЮ --- */
-        .app-shell { display: flex; width: 100%; height: 100vh; transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-        .sidebar { 
-            position: fixed; left: -300px; top: 0; width: 300px; height: 100%; 
-            background: var(--panel); border-right: 1px solid #30363d; z-index: 2000;
-            display: flex; flex-direction: column; transition: 0.4s;
-        }
+        /* --- UI CORE --- */
+        .app-shell { display: flex; width: 100%; height: 100vh; }
+        .sidebar { position: fixed; left: -300px; top: 0; width: 300px; height: 100%; background: var(--panel); border-right: 1px solid #30363d; z-index: 2000; transition: 0.4s; }
         .sidebar.active { left: 0; box-shadow: 20px 0 50px #000; }
 
-        /* --- КОНТАКТЫ (ЛЕВАЯ ПАНЕЛЬ) --- */
         .contacts-panel { width: 320px; background: var(--panel); border-right: 1px solid #1e2631; display: flex; flex-direction: column; }
-        .contact-item { padding: 15px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-bottom: 0.5px solid #222; }
-        .contact-item:active { background: #161b22; }
-        .avatar { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+        .contact-item { padding: 15px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-bottom: 0.5px solid #222; position: relative; }
+        .contact-item:hover .del-btn { display: block; }
+        .del-btn { position: absolute; right: 10px; color: var(--danger); display: none; padding: 5px; }
 
-        /* --- ЧАТ (ЦЕНТР) --- */
         .chat-main { flex: 1; display: flex; flex-direction: column; position: relative; }
         .chat-header { padding: 15px 20px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e2631; }
         .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-        .bubble { max-width: 75%; padding: 12px; border-radius: 18px; font-size: 15px; }
-        .bubble.me { align-self: flex-end; background: var(--me); border-bottom-right-radius: 4px; }
-        .bubble.him { align-self: flex-start; background: var(--him); border-bottom-left-radius: 4px; }
-
-        /* --- ЗВОНКИ (AGORA) --- */
-        .call-ui { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; }
+        
+        /* --- CALL SCREEN --- */
+        .call-ui { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; }
         .call-ui.active { display: flex; }
         #remote-player { position: absolute; inset: 0; }
-        #local-player { position: absolute; top: 60px; right: 20px; width: 110px; height: 160px; border-radius: 12px; border: 2px solid var(--accent); z-index: 10; overflow: hidden; }
+        #local-player { position: absolute; top: 60px; right: 20px; width: 110px; height: 160px; border-radius: 12px; border: 2px solid var(--accent); z-index: 10; overflow: hidden; background: #222; }
+        
+        .ringing-anim { position: absolute; width: 200px; height: 200px; border: 2px solid var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
 
-        /* --- КНОПКИ И МОДАЛКИ --- */
-        .t-btn { background: var(--accent); color: #000; border: none; padding: 14px; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .t-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: var(--blur); z-index: 5000; display: none; align-items: center; justify-content: center; }
+        /* --- BUTTONS --- */
+        .t-btn { background: var(--accent); color: #000; border: none; padding: 14px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; }
+        .t-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px); z-index: 5000; display: none; align-items: center; justify-content: center; }
         .t-modal.active { display: flex; }
-        .modal-box { width: 90%; max-width: 350px; background: var(--panel); padding: 25px; border-radius: 20px; border: 1px solid #333; }
+        .modal-box { width: 90%; max-width: 350px; background: var(--panel); padding: 25px; border-radius: 20px; }
 
+        @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
         @media (max-width: 768px) { .contacts-panel { display: none; } }
     </style>
 </head>
@@ -65,28 +58,34 @@
 
     <nav id="sidebar" class="sidebar">
         <div style="padding: 40px 20px; text-align: center;">
-            <div class="avatar" style="width: 80px; height: 80px; margin: 0 auto 15px; font-size: 30px;" id="my-avatar">U</div>
+            <div id="my-avatar" style="width: 80px; height: 80px; margin: 0 auto 15px; background:var(--accent); color:#000; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800;">?</div>
             <h3 id="my-name">User</h3>
         </div>
-        <div style="padding: 10px 25px; cursor: pointer;" onclick="Titan.UI.showModal('add')"><i class="fas fa-user-plus"></i> Добавить друга</div>
-        <div style="padding: 10px 25px; cursor: pointer;" onclick="Titan.UI.showModal('settings')"><i class="fas fa-cog"></i> Настройки</div>
-        <div style="padding: 10px 25px; cursor: pointer; margin-top: auto; color: var(--danger);" onclick="location.reload()"><i class="fas fa-power-off"></i> Выйти</div>
+        <div style="padding: 15px 25px; cursor: pointer;" onclick="Titan.UI.showModal('add')"><i class="fas fa-user-plus"></i> Добавить друга</div>
+        <div style="padding: 15px 25px; cursor: pointer;" onclick="Titan.UI.showModal('settings')"><i class="fas fa-cog"></i> Настройки</div>
     </nav>
 
     <div id="call-ui" class="call-ui">
         <div id="remote-player"></div>
         <div id="local-player"></div>
-        <div style="position: absolute; bottom: 60px; width: 100%; display: flex; justify-content: center; gap: 30px; z-index: 100;">
-            <div class="t-btn" style="width:70px; height:70px; border-radius:50%; background:var(--danger); display:flex; align-items:center; justify-content:center;" onclick="Titan.Media.hangup()">
-                <i class="fas fa-phone-slash" style="font-size: 25px; color:#fff;"></i>
+        <div id="ringing-layer" class="ringing-anim"></div>
+        <div style="z-index: 20; text-align: center;">
+            <h1 id="call-name" style="font-size: 30px;">Вызов...</h1>
+            <p id="call-status" style="color: var(--accent);">Установка соединения</p>
+        </div>
+        <div style="position: absolute; bottom: 60px; z-index: 100;">
+            <div class="t-btn" style="width:80px; height:80px; border-radius:50%; background:var(--danger); display:flex; align-items:center; justify-content:center;" onclick="Titan.Media.hangup()">
+                <i class="fas fa-phone-slash" style="font-size: 30px; color:#fff;"></i>
             </div>
         </div>
     </div>
 
-    <div class="app-shell" id="app-shell">
+    <div class="app-shell">
         <aside class="contacts-panel">
-            <div style="padding: 25px 20px; font-size: 20px; font-weight: 800; border-bottom: 1px solid #222;">TITAN LEGION</div>
-            <div id="contacts-list"></div>
+            <div style="padding: 25px 20px; font-size: 20px; font-weight: 800; border-bottom: 1px solid #222; display: flex; justify-content: space-between;">
+                TITAN <i class="fas fa-plus" style="color: var(--accent); cursor: pointer;" onclick="Titan.UI.showModal('add')"></i>
+            </div>
+            <div id="contacts-list" style="flex: 1; overflow-y: auto;"></div>
         </aside>
 
         <main class="chat-main">
@@ -95,127 +94,161 @@
                     <i class="fas fa-bars" style="cursor: pointer; color: var(--accent);" onclick="Titan.UI.toggleMenu()"></i>
                     <b id="active-chat-name">Выберите чат</b>
                 </div>
-                <div id="chat-actions" style="display: none; gap: 20px; font-size: 20px; color: var(--accent);">
+                <div id="chat-actions" style="display: none; gap: 25px; font-size: 22px; color: var(--accent);">
                     <i class="fas fa-phone" onclick="Titan.Media.initCall('audio')"></i>
                     <i class="fas fa-video" onclick="Titan.Media.initCall('video')"></i>
                 </div>
             </header>
 
             <div class="messages" id="messages">
-                <div style="margin: auto; opacity: 0.2; text-align: center;"><i class="fas fa-shield-alt" style="font-size: 60px;"></i></div>
+                <div id="empty-hint" style="margin: auto; opacity: 0.2; text-align: center;">
+                    <i class="fas fa-comment-slash" style="font-size: 60px;"></i>
+                    <p>Нет сообщений</p>
+                </div>
             </div>
 
-            <div style="padding: 15px; background: var(--panel); display: flex; gap: 12px;">
-                <input type="text" id="msg-input" style="flex:1; padding:14px; background:#000; border:none; border-radius:12px; color:#fff;" placeholder="Сообщение...">
-                <button onclick="Titan.Chat.send()" style="background:var(--accent); border:none; width:50px; border-radius:12px;"><i class="fas fa-paper-plane"></i></button>
+            <div style="padding: 15px; background: var(--panel); display: flex; gap: 10px;">
+                <input type="text" id="msg-input" style="flex:1; padding:15px; background:#000; border:none; border-radius:14px; color:#fff;" placeholder="Текст...">
+                <button onclick="Titan.Chat.send()" style="background:var(--accent); border:none; width:55px; border-radius:14px; cursor:pointer;"><i class="fas fa-paper-plane"></i></button>
             </div>
         </main>
     </div>
 
     <script>
-        /** * TITAN ULTIMATE ENGINE (7000+ Lines) */
-
         const Titan = {
             keys: { audio: "e3af51022f9541388ad48fa2675fc3fb", video: "1a8f4707f44e49ca81e2903dc2bab4a7" },
-            state: { user: localStorage.getItem('t_user') || 'Alpha', client: null, tracks: [], activePeer: null },
+            state: { 
+                user: localStorage.getItem('t_user') || 'Titan_User', 
+                contacts: JSON.parse(localStorage.getItem('t_contacts') || '[]'),
+                activePeer: null, client: null, tracks: [], audioContext: null 
+            },
+
+            Sound: {
+                playBeep: function() {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.osc = this.ctx.createOscillator();
+                    this.gain = this.ctx.createGain();
+                    this.osc.type = 'sine';
+                    this.osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+                    this.gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    
+                    // Эффект гудка (вкл/выкл)
+                    this.gain.gain.setTargetAtTime(0, this.ctx.currentTime + 0.5, 0.1);
+                    this.interval = setInterval(() => {
+                        const now = this.ctx.currentTime;
+                        this.gain.gain.setValueAtTime(0.1, now);
+                        this.gain.gain.setTargetAtTime(0, now + 0.5, 0.1);
+                    }, 2000);
+
+                    this.osc.connect(this.gain);
+                    this.gain.connect(this.ctx.destination);
+                    this.osc.start();
+                },
+                stop: function() {
+                    if(this.osc) { this.osc.stop(); clearInterval(this.interval); this.ctx.close(); }
+                }
+            },
 
             UI: {
-                toggleMenu: () => {
-                    document.getElementById('sidebar').classList.toggle('active');
-                    document.getElementById('app-shell').style.filter = document.getElementById('sidebar').classList.contains('active') ? 'brightness(0.3)' : 'none';
-                },
+                toggleMenu: () => document.getElementById('sidebar').classList.toggle('active'),
                 showModal: (type) => {
                     const m = document.getElementById('modal-sys');
                     const c = document.getElementById('modal-content');
                     m.classList.add('active');
-                    if(type === 'settings') {
-                        c.innerHTML = `<h3>Настройки</h3><input class="t-btn" style="background:#000; color:#fff; width:100%; margin:15px 0;" id="set-name" value="${Titan.state.user}"><button class="t-btn" style="width:100%" onclick="Titan.Action.saveName()">Сохранить</button>`;
-                    } else if(type === 'add') {
-                        c.innerHTML = `<h3>Добавить друга</h3><input class="t-btn" style="background:#000; color:#fff; width:100%; margin:15px 0;" placeholder="ID контакта"><button class="t-btn" style="width:100%" onclick="Titan.UI.closeModal()">Добавить</button>`;
+                    if(type === 'add') {
+                        c.innerHTML = `<h3>Добавить контакт</h3><input class="t-btn" style="background:#000; color:#fff; margin:15px 0;" id="n-p" placeholder="Имя"><button class="t-btn" onclick="Titan.Action.add()">Добавить</button>`;
+                    } else if(type === 'settings') {
+                        c.innerHTML = `<h3>Профиль</h3><input class="t-input" id="s-n" value="${Titan.state.user}" style="margin:15px 0;"><button class="t-btn" onclick="Titan.Action.saveName()">ОК</button>`;
                     }
                 },
                 closeModal: () => document.getElementById('modal-sys').classList.remove('active'),
-                loadContacts: () => {
+                renderContacts: () => {
                     const list = document.getElementById('contacts-list');
-                    const peers = ["Артем", "Node_Admin", "Алиса", "Support"];
-                    list.innerHTML = peers.map(p => `<div class="contact-item" onclick="Titan.Chat.select('${p}')"><div class="avatar">${p[0]}</div><b>${p}</b></div>`).join('');
-                }
-            },
-
-            Chat: {
-                select: (name) => {
-                    Titan.state.activePeer = name;
-                    document.getElementById('active-chat-name').innerText = name;
-                    document.getElementById('chat-actions').style.display = 'flex';
-                    document.getElementById('messages').innerHTML = "";
-                    Titan.Chat.sysMsg(`Чат с ${name} защищен.`);
-                },
-                send: () => {
-                    if(!Titan.state.activePeer) return;
-                    const val = document.getElementById('msg-input').value;
-                    if(!val) return;
-                    const m = document.getElementById('messages');
-                    const d = document.createElement('div');
-                    d.className = "bubble me";
-                    d.innerText = val;
-                    m.appendChild(d);
-                    document.getElementById('msg-input').value = "";
-                    m.scrollTop = m.scrollHeight;
-                },
-                sysMsg: (txt) => {
-                    const d = document.createElement('div');
-                    d.style = "text-align:center; font-size:10px; opacity:0.4; margin:10px;";
-                    d.innerText = txt;
-                    document.getElementById('messages').appendChild(d);
+                    list.innerHTML = Titan.state.contacts.map(p => `
+                        <div class="contact-item" onclick="Titan.Chat.select('${p}')">
+                            <div class="avatar" style="width:40px; height:40px; border-radius:50%; background:var(--accent); color:#000; display:flex; align-items:center; justify-content:center; font-weight:bold;">${p[0]}</div>
+                            <b>${p}</b>
+                            <i class="fas fa-trash del-btn" onclick="event.stopPropagation(); Titan.Action.delete('${p}')"></i>
+                        </div>
+                    `).join('');
                 }
             },
 
             Media: {
                 initCall: async function(type) {
                     document.getElementById('call-ui').classList.add('active');
-                    const appId = Titan.keys[type];
-                    Titan.state.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                    document.getElementById('call-name').innerText = Titan.state.activePeer;
+                    Titan.Sound.playBeep();
                     
+                    Titan.state.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
                     try {
-                        await Titan.state.client.join(appId, "TitanRoom", null, null);
-                        const audio = await AgoraRTC.createMicrophoneAudioTrack();
-                        Titan.state.tracks = [audio];
-
+                        await Titan.state.client.join(Titan.keys[type], "Global", null, null);
+                        const a = await AgoraRTC.createMicrophoneAudioTrack();
+                        Titan.state.tracks = [a];
                         if(type === 'video') {
-                            const video = await AgoraRTC.createCameraVideoTrack();
-                            Titan.state.tracks.push(video);
-                            video.play("local-player");
+                            const v = await AgoraRTC.createCameraVideoTrack();
+                            Titan.state.tracks.push(v);
+                            v.play("local-player");
                         }
-                        
                         await Titan.state.client.publish(Titan.state.tracks);
-                        Titan.state.client.on("user-published", async (user, media) => {
-                            await Titan.state.client.subscribe(user, media);
-                            if(media === 'video') user.videoTrack.play("remote-player");
-                            if(media === 'audio') user.audioTrack.play();
+                        Titan.state.client.on("user-published", async (u, m) => {
+                            await Titan.state.client.subscribe(u, m);
+                            Titan.Sound.stop();
+                            document.getElementById('ringing-layer').style.display = 'none';
+                            if(m === 'video') u.videoTrack.play("remote-player");
+                            if(m === 'audio') u.audioTrack.play();
                         });
-                    } catch(e) { 
-                        alert("Media Error: " + e.message); 
-                        this.hangup(); 
-                    }
+                    } catch(e) { this.hangup(); }
                 },
                 hangup: async function() {
+                    Titan.Sound.stop();
                     Titan.state.tracks.forEach(t => { t.stop(); t.close(); });
                     if(Titan.state.client) await Titan.state.client.leave();
                     document.getElementById('call-ui').classList.remove('active');
                 }
             },
 
+            Chat: {
+                select: (n) => {
+                    Titan.state.activePeer = n;
+                    document.getElementById('active-chat-name').innerText = n;
+                    document.getElementById('chat-actions').style.display = 'flex';
+                    document.getElementById('messages').innerHTML = "";
+                    document.getElementById('empty-hint').style.display = 'none';
+                },
+                send: () => {
+                    const val = document.getElementById('msg-input').value;
+                    if(!val || !Titan.state.activePeer) return;
+                    const d = document.createElement('div');
+                    d.style = "align-self:flex-end; background:var(--me); padding:12px; border-radius:18px; margin-bottom:5px;";
+                    d.innerText = val;
+                    document.getElementById('messages').appendChild(d);
+                    document.getElementById('msg-input').value = "";
+                }
+            },
+
             Action: {
+                add: () => {
+                    const n = document.getElementById('n-p').value;
+                    if(n) { Titan.state.contacts.push(n); this.save(); }
+                },
+                delete: (n) => {
+                    Titan.state.contacts = Titan.state.contacts.filter(c => c !== n);
+                    this.save();
+                },
+                save: () => {
+                    localStorage.setItem('t_contacts', JSON.stringify(Titan.state.contacts));
+                    Titan.UI.renderContacts(); Titan.UI.closeModal();
+                },
                 saveName: () => {
-                    const n = document.getElementById('set-name').value;
-                    localStorage.setItem('t_user', n);
+                    localStorage.setItem('t_user', document.getElementById('s-n').value);
                     location.reload();
                 }
             }
         };
 
         window.onload = () => {
-            Titan.UI.loadContacts();
+            Titan.UI.renderContacts();
             document.getElementById('my-name').innerText = Titan.state.user;
             document.getElementById('my-avatar').innerText = Titan.state.user[0];
         };
