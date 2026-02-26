@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-    <title>TITAN | MOROZOV ULTRA</title>
+    <title>TITAN | SECURE AUTH</title>
     
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -19,15 +19,16 @@
         .screen { position: fixed; inset: 0; display: none; background: var(--bg); z-index: 100; flex-direction: column; }
         .screen.active { display: flex; }
 
-        /* AUTH */
+        /* AUTH BOX */
         .auth-box { margin: auto; width: 90%; max-width: 380px; padding: 30px; background: var(--panel); border-radius: 20px; border: 1px solid #333; text-align: center; }
-        .t-input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; border-radius: 12px; color: #fff; margin-bottom: 12px; }
-        .t-btn { width: 100%; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
+        .t-input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; border-radius: 12px; color: #fff; margin-bottom: 12px; font-size: 16px; }
+        .t-btn { width: 100%; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; }
+        .t-btn:hover { opacity: 0.8; }
 
-        /* APP LAYOUT */
+        /* MAIN APP */
         .app-layout { display: flex; width: 100%; height: 100vh; }
         .sidebar { position: fixed; left: -300px; top: 0; width: 280px; height: 100%; background: var(--panel); z-index: 2000; transition: 0.3s; border-right: 1px solid #333; }
-        .sidebar.active { left: 0; box-shadow: 10px 0 30px #000; }
+        .sidebar.active { left: 0; }
         
         .contacts-bar { width: 300px; background: var(--panel); border-right: 1px solid #161b22; display: flex; flex-direction: column; }
         .c-item { padding: 15px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #161b22; cursor: pointer; }
@@ -38,16 +39,11 @@
         .bubble.me { align-self: flex-end; background: var(--me); }
         .bubble.him { align-self: flex-start; background: var(--him); }
 
-        /* CALL UI */
         .call-ui { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; }
         .call-ui.active { display: flex; }
         #remote-v { position: absolute; inset:0; }
         #local-v { position: absolute; top: 40px; right: 20px; width: 100px; height: 150px; border-radius: 10px; border: 1px solid var(--accent); z-index: 10; background: #111; }
         
-        .controls { position: absolute; bottom: 50px; display: flex; gap: 20px; z-index: 100; }
-        .ctrl-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .ctrl-btn.danger { background: var(--danger); }
-
         @media (max-width: 768px) { .contacts-bar { display: none; } }
     </style>
 </head>
@@ -55,9 +51,13 @@
 
     <section id="scr-auth" class="screen">
         <div class="auth-box">
-            <h1 style="color: var(--accent); margin-bottom: 20px;">TITAN ULTRA</h1>
-            <input type="text" id="in-user" class="t-input" placeholder="Ваш никнейм">
-            <button class="t-btn" id="btn-login">ВОЙТИ В СЕТЬ</button>
+            <h1 style="color: var(--accent); margin-bottom: 10px;">TITAN</h1>
+            <p style="margin-bottom: 20px; opacity: 0.6;">Вход по почте</p>
+            <input type="email" id="auth-email" class="t-input" placeholder="Email">
+            <input type="password" id="auth-pass" class="t-input" placeholder="Пароль">
+            <input type="text" id="auth-nick" class="t-input" placeholder="Ваш ник (для новых)">
+            <button class="t-btn" id="btn-auth-action">ВОЙТИ / СОЗДАТЬ</button>
+            <p id="auth-error" style="color: var(--danger); margin-top: 10px; font-size: 12px;"></p>
         </div>
     </section>
 
@@ -65,29 +65,30 @@
         <div class="app-layout">
             <nav id="sidebar" class="sidebar">
                 <div style="padding: 30px; text-align: center; border-bottom: 1px solid #333;">
-                    <h2 id="ui-nick">...</h2>
+                    <div id="ui-ava" style="width:50px; height:50px; background:var(--accent); border-radius:50%; margin:0 auto 10px; color:#000; display:flex; align-items:center; justify-content:center; font-weight:bold;">?</div>
+                    <h3 id="ui-nick">...</h3>
                 </div>
-                <div style="padding: 20px; cursor: pointer;" id="btn-add-friend"><i class="fas fa-user-plus"></i> Добавить друга</div>
-                <div style="padding: 20px; color: var(--danger); cursor: pointer;" id="btn-logout">Сброс сессии</div>
+                <div style="padding: 20px; cursor: pointer;" id="btn-add-friend"><i class="fas fa-plus"></i> Добавить контакт</div>
+                <div style="padding: 20px; color: var(--danger); cursor: pointer;" id="btn-logout">Выйти из системы</div>
             </nav>
 
             <aside class="contacts-bar">
-                <div style="padding: 20px; font-weight: 800; border-bottom: 1px solid #333;">МОИ КОНТАКТЫ</div>
+                <div style="padding: 20px; font-weight: 800; border-bottom: 1px solid #333;">КОНТАКТЫ</div>
                 <div id="contacts-list"></div>
             </aside>
 
             <main class="chat-area">
                 <header style="padding: 15px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
-                    <i class="fas fa-bars" style="color: var(--accent); cursor: pointer;" id="menu-toggle"></i>
-                    <b id="chat-title">Выберите контакт</b>
-                    <div id="call-btns" style="display: none; gap: 20px; color: var(--accent); font-size: 20px;">
+                    <i class="fas fa-bars" style="color: var(--accent);" id="menu-toggle"></i>
+                    <b id="chat-title">Выберите чат</b>
+                    <div id="call-btns" style="display: none; gap: 20px; color: var(--accent);">
                         <i class="fas fa-phone" id="btn-audio-call"></i>
                         <i class="fas fa-video" id="btn-video-call"></i>
                     </div>
                 </header>
                 <div id="messages" class="msg-wall"></div>
                 <div style="padding: 15px; display: flex; gap: 10px; background: var(--panel);">
-                    <input type="text" id="msg-input" class="t-input" style="margin:0;" placeholder="Введите сообщение...">
+                    <input type="text" id="msg-input" class="t-input" style="margin:0;" placeholder="Сообщение...">
                     <button class="t-btn" style="width: 60px;" id="btn-send"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </main>
@@ -97,14 +98,15 @@
     <div id="scr-call" class="call-ui">
         <div id="remote-v"></div>
         <div id="local-v"></div>
-        <div class="controls">
-            <div class="ctrl-btn danger" id="btn-hangup"><i class="fas fa-phone-slash"></i></div>
+        <div style="position: absolute; bottom: 50px; z-index: 100;">
+            <button class="t-btn" style="background: var(--danger); width: 80px; height: 80px; border-radius: 50%;" id="btn-hangup"><i class="fas fa-phone-slash" style="font-size: 24px;"></i></button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk",
@@ -118,79 +120,83 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getDatabase(app);
-        const AGORA_APP_ID = "e3af51022f9541388ad48fa2675fc3fb"; // Используем один ID для теста
+        const AGORA_ID = "e3af51022f9541388ad48fa2675fc3fb";
 
-        const State = {
-            user: localStorage.getItem('t_user'),
-            friends: JSON.parse(localStorage.getItem('t_friends') || '[]'),
-            activeChat: null,
-            client: null,
-            tracks: []
+        let currentUser = null;
+        let activeChat = null;
+        let tracks = [];
+        let client = null;
+
+        // --- МОНИТОРИНГ ВХОДА ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('scr-auth').classList.remove('active');
+                document.getElementById('scr-main').classList.add('active');
+                document.getElementById('ui-nick').innerText = user.displayName || user.email;
+                document.getElementById('ui-ava').innerText = (user.displayName || "U")[0].toUpperCase();
+                renderFriends();
+            } else {
+                document.getElementById('scr-auth').classList.add('active');
+                document.getElementById('scr-main').classList.remove('active');
+            }
+        });
+
+        // --- ЛОГИКА АВТОРИЗАЦИИ ---
+        document.getElementById('btn-auth-action').onclick = async () => {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            const nick = document.getElementById('auth-nick').value;
+            const err = document.getElementById('auth-error');
+
+            try {
+                // Пытаемся войти
+                const res = await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                // Если не нашли — создаем
+                if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+                    try {
+                        const res = await createUserWithEmailAndPassword(auth, email, pass);
+                        await updateProfile(res.user, { displayName: nick || email.split('@')[0] });
+                        location.reload();
+                    } catch (err2) { err.innerText = "Ошибка: " + err2.message; }
+                } else { err.innerText = "Ошибка: " + e.message; }
+            }
         };
 
-        // --- ИНИЦИАЛИЗАЦИЯ ---
-        if (!State.user) {
-            document.getElementById('scr-auth').classList.add('active');
-        } else {
-            document.getElementById('scr-main').classList.add('active');
-            document.getElementById('ui-nick').innerText = State.user;
-            renderFriends();
-        }
-
-        // --- ФУНКЦИИ ---
+        // --- ОСТАЛЬНАЯ ЛОГИКА ---
         function renderFriends() {
+            const friends = JSON.parse(localStorage.getItem('t_friends') || '[]');
             const list = document.getElementById('contacts-list');
-            list.innerHTML = State.friends.map(f => `
-                <div class="c-item" data-name="${f}">
-                    <div style="width:40px;height:40px;background:var(--accent);border-radius:50%;color:#000;display:flex;align-items:center;justify-content:center;font-weight:bold;">${f[0].toUpperCase()}</div>
-                    <b>${f}</b>
-                </div>
-            `).join('');
-
-            document.querySelectorAll('.c-item').forEach(el => {
-                el.onclick = () => selectChat(el.dataset.name);
-            });
+            list.innerHTML = friends.map(f => `<div class="c-item" onclick="selectChat('${f}')"><b>${f}</b></div>`).join('');
         }
 
-        function selectChat(name) {
-            State.activeChat = name;
+        window.selectChat = (name) => {
+            activeChat = name;
             document.getElementById('chat-title').innerText = name;
             document.getElementById('call-btns').style.display = 'flex';
             document.getElementById('messages').innerHTML = "";
-            document.getElementById('sidebar').classList.remove('active');
-
-            const roomID = [State.user, name].sort().join('_');
-            const chatRef = ref(db, 'chats/' + roomID);
             
-            // Слушаем новые сообщения
-            onChildAdded(chatRef, (snapshot) => {
-                drawMessage(snapshot.val());
+            const roomID = [currentUser.displayName, name].sort().join('_');
+            onChildAdded(ref(db, 'chats/' + roomID), (snap) => {
+                const data = snap.val();
+                const wall = document.getElementById('messages');
+                const div = document.createElement('div');
+                div.className = `bubble ${data.sender === currentUser.displayName ? 'me' : 'him'}`;
+                div.innerText = data.text;
+                wall.appendChild(div);
+                wall.scrollTop = wall.scrollHeight;
             });
-        }
-
-        function drawMessage(data) {
-            const wall = document.getElementById('messages');
-            const div = document.createElement('div');
-            div.className = `bubble ${data.sender === State.user ? 'me' : 'him'}`;
-            div.innerText = data.text;
-            wall.appendChild(div);
-            wall.scrollTop = wall.scrollHeight;
-        }
-
-        // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
-        document.getElementById('btn-login').onclick = () => {
-            const n = document.getElementById('in-user').value.trim();
-            if(n) { localStorage.setItem('t_user', n); location.reload(); }
         };
 
         document.getElementById('btn-send').onclick = () => {
             const inp = document.getElementById('msg-input');
-            if(!inp.value || !State.activeChat) return;
-            
-            const roomID = [State.user, State.activeChat].sort().join('_');
+            if(!inp.value || !activeChat) return;
+            const roomID = [currentUser.displayName, activeChat].sort().join('_');
             push(ref(db, 'chats/' + roomID), {
-                sender: State.user,
+                sender: currentUser.displayName,
                 text: inp.value,
                 time: Date.now()
             });
@@ -200,49 +206,40 @@
         document.getElementById('btn-add-friend').onclick = () => {
             const n = prompt("Имя друга:");
             if(n) {
-                State.friends.push(n);
-                localStorage.setItem('t_friends', JSON.stringify(State.friends));
+                const f = JSON.parse(localStorage.getItem('t_friends') || '[]');
+                f.push(n);
+                localStorage.setItem('t_friends', JSON.stringify(f));
                 renderFriends();
             }
         };
 
-        document.getElementById('menu-toggle').onclick = () => {
-            document.getElementById('sidebar').classList.toggle('active');
-        };
+        document.getElementById('btn-logout').onclick = () => signOut(auth);
+        document.getElementById('menu-toggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');
 
-        document.getElementById('btn-logout').onclick = () => {
-            localStorage.clear();
-            location.reload();
-        };
-
-        // --- ЗВОНКИ (AGORA) ---
+        // Звонки через Agora
         async function startCall(type) {
             document.getElementById('scr-call').classList.add('active');
-            State.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-            await State.client.join(AGORA_APP_ID, "GlobalRoom", null, null);
-            
+            client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+            await client.join(AGORA_ID, "GlobalRoom", null, null);
             const audio = await AgoraRTC.createMicrophoneAudioTrack();
-            State.tracks = [audio];
-
+            tracks = [audio];
             if(type === 'video') {
                 const video = await AgoraRTC.createCameraVideoTrack();
-                State.tracks.push(video);
+                tracks.push(video);
                 video.play("local-v");
             }
-
-            await State.client.publish(State.tracks);
-            State.client.on("user-published", async (user, mediaType) => {
-                await State.client.subscribe(user, mediaType);
-                if (mediaType === "video") user.videoTrack.play("remote-v");
-                if (mediaType === "audio") user.audioTrack.play();
+            await client.publish(tracks);
+            client.on("user-published", async (u, m) => {
+                await client.subscribe(u, m);
+                if(m === 'video') u.videoTrack.play("remote-v");
+                if(m === 'audio') u.audioTrack.play();
             });
         }
-
         document.getElementById('btn-audio-call').onclick = () => startCall('audio');
         document.getElementById('btn-video-call').onclick = () => startCall('video');
         document.getElementById('btn-hangup').onclick = async () => {
-            State.tracks.forEach(t => { t.stop(); t.close(); });
-            if(State.client) await State.client.leave();
+            tracks.forEach(t => { t.stop(); t.close(); });
+            if(client) await client.leave();
             document.getElementById('scr-call').classList.remove('active');
         };
     </script>
