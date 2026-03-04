@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-    <title>Speeky Titan Ultra</title>
+    <title>Speeky Ultimate</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -11,88 +11,101 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        :root { --bg: #000; --accent: #3d5afe; --text-dim: #8e8e93; }
+        :root { --bg: #000; --accent: #3d5afe; --gray: #1c1c1e; --text: #fff; }
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; }
 
-        /* SCREENS */
+        /* HEADER */
+        header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--gray); }
+        
+        /* CHAT LIST */
         .screen { position: fixed; inset: 0; display: none; background: var(--bg); z-index: 100; flex-direction: column; }
         .screen.active { display: flex; }
-
-        /* LIST */
-        header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #1c1c1e; }
-        .chat-item { display: flex; align-items: center; padding: 15px 20px; gap: 15px; border-bottom: 0.5px solid #111; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #2c2c2e; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .chat-item { display: flex; align-items: center; padding: 15px; gap: 15px; border-bottom: 0.5px solid #111; }
+        .ava { width: 50px; height: 50px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; }
 
         /* CHAT WINDOW */
-        .chat-window { position: fixed; inset: 0; background: #000; z-index: 200; display: none; flex-direction: column; transform: translateX(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .chat-window.active { display: flex; transform: translateX(0); }
+        #chat-win { z-index: 500; transform: translateX(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #chat-win.active { display: flex; transform: translateX(0); }
         .msg-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
 
         /* BUBBLES */
-        .bubble { padding: 10px 14px; border-radius: 18px; max-width: 75%; font-size: 16px; position: relative; }
+        .bubble { padding: 10px 14px; border-radius: 18px; max-width: 75%; position: relative; font-size: 15px; word-wrap: break-word; }
         .bubble.me { align-self: flex-end; background: var(--accent); border-bottom-right-radius: 4px; }
-        .bubble.him { align-self: flex-start; background: #1c1c1e; border-bottom-left-radius: 4px; }
-        .bubble.sticker { background: transparent !important; font-size: 60px; padding: 0; }
-        
-        /* VOICE PLAYER */
-        .v-msg { display: flex; align-items: center; gap: 10px; min-width: 150px; }
-        .v-play { font-size: 20px; cursor: pointer; }
+        .bubble.him { align-self: flex-start; background: var(--gray); border-bottom-left-radius: 4px; }
+        .bubble img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
+        .sticker-msg { background: transparent !important; font-size: 60px; padding: 0; align-self: center; }
 
-        /* INPUT & PTT */
-        .input-area { padding: 10px 15px 30px; background: #000; display: flex; align-items: center; gap: 15px; }
-        .input-box { flex: 1; background: #1c1c1e; border: none; padding: 12px 20px; border-radius: 25px; color: #fff; }
-        .ptt-btn { 
-            width: 45px; height: 45px; background: #fff; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; color: #000; 
-            transition: 0.2s; cursor: pointer;
-        }
-        .ptt-btn.recording { background: #ff3b30; color: #fff; transform: scale(1.3); box-shadow: 0 0 20px rgba(255,59,48,0.5); }
+        /* CONTROLS */
+        .input-bar { padding: 10px 15px 30px; background: #000; display: flex; align-items: center; gap: 12px; }
+        .input-box { flex: 1; background: var(--gray); border: none; padding: 12px 18px; border-radius: 25px; color: #fff; font-size: 16px; }
+        .btn-icon { font-size: 22px; color: #8e8e93; cursor: pointer; }
+        .ptt-circle { width: 45px; height: 45px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; transition: 0.2s; }
+        .ptt-circle.recording { background: #ff3b30; color: #fff; transform: scale(1.3); }
+
+        /* STICKER PANEL */
+        #sticker-panel { display: none; background: var(--gray); padding: 10px; grid-template-columns: repeat(5, 1fr); gap: 10px; position: absolute; bottom: 85px; left: 15px; border-radius: 15px; z-index: 1000; }
 
         /* CALL OVERLAY */
-        .call-ui { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .call-ui.active { display: flex; }
+        #call-overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .call-btn { width: 70px; height: 70px; border-radius: 50%; border: none; font-size: 24px; color: #fff; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <section id="scr-main" class="screen active">
         <header>
-            <i class="fas fa-bars"></i>
+            <i class="fas fa-cog"></i>
             <b>Speeky</b>
-            <i class="fas fa-user-plus" onclick="App.addFriend()"></i>
+            <i class="fas fa-plus" onclick="App.addFriend()"></i>
         </header>
         <div id="contact-list"></div>
     </section>
 
-    <div id="chat-win" class="chat-window">
+    <div id="chat-win" class="screen">
         <header>
             <i class="fas fa-chevron-left" onclick="App.closeChat()"></i>
             <b id="chat-name">Name</b>
-            <div style="display: flex; gap: 20px;">
-                <i class="fas fa-phone" onclick="Voice.startCall()"></i>
-                <i class="fas fa-video" onclick="Voice.startCall(true)"></i>
+            <div style="display:flex; gap:20px">
+                <i class="fas fa-phone" onclick="Call.sendSignal('audio')"></i>
+                <i class="fas fa-video" onclick="Call.sendSignal('video')"></i>
             </div>
         </header>
         <div class="msg-list" id="msg-list"></div>
-        <div class="input-area">
+        
+        <div id="sticker-panel">
+            <span onclick="App.sendMsg('👋', 'sticker')">👋</span>
+            <span onclick="App.sendMsg('❤️', 'sticker')">❤️</span>
+            <span onclick="App.sendMsg('😂', 'sticker')">😂</span>
+            <span onclick="App.sendMsg('🔥', 'sticker')">🔥</span>
+            <span onclick="App.sendMsg('🤡', 'sticker')">🤡</span>
+        </div>
+
+        <div class="input-bar">
+            <i class="fas fa-plus btn-icon" onclick="document.getElementById('file-inp').click()"></i>
+            <i class="fas fa-smile btn-icon" onclick="App.toggleStickers()"></i>
             <input type="text" id="m-inp" class="input-box" placeholder="Сообщение...">
-            <div id="ptt-btn" class="ptt-btn">
-                <i class="fas fa-microphone" id="ptt-icon"></i>
-            </div>
+            <div id="ptt-btn" class="ptt-circle"><i class="fas fa-microphone" id="ptt-icon"></i></div>
+            <input type="file" id="file-inp" hidden onchange="App.uploadFile(this)">
         </div>
     </div>
 
-    <div id="call-ui" class="call-ui">
-        <div id="remote-v" style="position: absolute; inset: 0;"></div>
-        <div id="local-v" style="position: absolute; top: 40px; right: 20px; width: 100px; height: 150px; border-radius: 10px; border: 2px solid var(--accent);"></div>
-        <div class="ptt-btn" style="background: #ff3b30; color: #fff; position: absolute; bottom: 50px;" onclick="Voice.endCall()">
-            <i class="fas fa-phone-slash"></i>
+    <div id="call-overlay">
+        <h1 id="caller-name">Входящий вызов...</h1>
+        <div style="display:flex; gap:40px; margin-top:50px">
+            <button class="call-btn" style="background:#ff3b30" onclick="Call.end()"><i class="fas fa-times"></i></button>
+            <button class="call-btn" style="background:#34c759; animation: pulse 1s infinite" onclick="Call.accept()"><i class="fas fa-phone"></i></button>
         </div>
+    </div>
+
+    <div id="video-scr" style="position:fixed; inset:0; z-index:3000; display:none; background:#000">
+        <div id="remote-v" style="width:100%; height:100%"></div>
+        <div id="local-v" style="position:absolute; top:40px; right:20px; width:100px; height:150px; border-radius:10px; border:2px solid #fff"></div>
+        <button class="call-btn" style="position:absolute; bottom:50px; left:50%; transform:translateX(-50%); background:#ff3b30" onclick="Call.end()"><i class="fas fa-phone-slash"></i></button>
     </div>
 
     <script>
-        // Твой конфиг Firebase из Morozov Ultra
+        // --- CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDutfZZER58asyHr68zWlCx7B5k1adFhIk",
             authDomain: "morozov-ultra.firebaseapp.com",
@@ -104,28 +117,30 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const ringtone = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3');
+        ringtone.loop = true;
 
-        let myName = "User_" + Math.floor(Math.random()*99);
+        let myName = localStorage.getItem('nick') || prompt("Ваш ник:") || "User";
+        localStorage.setItem('nick', myName);
         let activePeer = null;
-        let recorder = null;
-        let audioChunks = [];
 
+        // --- APP LOGIC ---
         const App = {
             addFriend: () => {
                 const n = prompt("Ник друга:");
                 if(n) {
-                    let f = JSON.parse(localStorage.getItem('f_list') || '[]');
+                    let f = JSON.parse(localStorage.getItem('f') || '[]');
                     if(!f.includes(n)) f.push(n);
-                    localStorage.setItem('f_list', JSON.stringify(f));
+                    localStorage.setItem('f', JSON.stringify(f));
                     App.renderList();
                 }
             },
             renderList: () => {
-                const f = JSON.parse(localStorage.getItem('f_list') || '[]');
+                const f = JSON.parse(localStorage.getItem('f') || '[]');
                 document.getElementById('contact-list').innerHTML = f.map(n => `
                     <div class="chat-item" onclick="App.openChat('${n}')">
-                        <div class="avatar">${n[0]}</div>
-                        <div><b>${n}</b><div style="color:#888; font-size:13px">Нажми, чтобы зайти</div></div>
+                        <div class="ava">${n[0]}</div>
+                        <b>${n}</b>
                     </div>
                 `).join('');
             },
@@ -135,95 +150,119 @@
                 document.getElementById('chat-win').classList.add('active');
                 App.listen();
             },
-            closeChat: () => document.getElementById('chat-win').classList.remove('active'),
+            closeChat: () => {
+                document.getElementById('chat-win').classList.remove('active');
+                activePeer = null;
+            },
+            toggleStickers: () => {
+                const p = document.getElementById('sticker-panel');
+                p.style.display = p.style.display === 'grid' ? 'none' : 'grid';
+            },
+            sendMsg: (val, type='text') => {
+                if(!activePeer) return;
+                const rid = [myName, activePeer].sort().join('_');
+                db.ref('chats/'+rid).push({ s: myName, m: val, type: type, t: Date.now() });
+                document.getElementById('m-inp').value = "";
+                document.getElementById('sticker-panel').style.display = 'none';
+            },
+            uploadFile: (input) => {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = () => App.sendMsg(reader.result, file.type.includes('image') ? 'img' : 'file');
+                reader.readAsDataURL(file);
+            },
             listen: () => {
                 const rid = [myName, activePeer].sort().join('_');
-                db.ref('chats/' + rid).on('value', snap => {
+                db.ref('chats/'+rid).on('value', snap => {
                     const list = document.getElementById('msg-list');
                     list.innerHTML = "";
                     snap.forEach(m => {
                         const d = m.val();
-                        const isS = d.msg === "👋";
-                        let content = d.msg;
+                        let html = d.m;
+                        if(d.type === 'img') html = `<img src="${d.m}">`;
+                        if(d.type === 'voice') html = `<i class="fas fa-play" onclick="new Audio('${d.m}').play()"></i> ГС`;
+                        if(d.type === 'file') html = `<a href="${d.m}" target="_blank" style="color:#fff">📁 Файл</a>`;
                         
-                        if(d.type === 'voice') {
-                            content = `<div class="v-msg"><i class="fas fa-play v-play" onclick="new Audio('${d.msg}').play()"></i> <span>Голосовое</span></div>`;
-                        }
-
-                        list.innerHTML += `<div class="bubble ${d.s === myName ? 'me' : 'him'} ${isS ? 'sticker' : ''}">${content}</div>`;
+                        list.innerHTML += `<div class="bubble ${d.s === myName ? 'me' : 'him'} ${d.type==='sticker'?'sticker-msg':''}">${html}</div>`;
                     });
                     list.scrollTop = list.scrollHeight;
                 });
             }
         };
 
-        // --- ГОЛОСОВЫЕ (PTT) ---
-        const ptt = document.getElementById('ptt-btn');
-        ptt.onmousedown = ptt.ontouchstart = async () => {
-            if(document.getElementById('m-inp').value) { App.sendText(); return; } // Если есть текст, просто шлем его
-            
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            recorder = new MediaRecorder(stream);
-            audioChunks = [];
-            recorder.ondataavailable = e => audioChunks.push(e.data);
-            recorder.onstop = async () => {
-                const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = () => App.sendVoice(reader.result);
-            };
-            recorder.start();
-            ptt.classList.add('recording');
-            document.getElementById('ptt-icon').className = "fas fa-waveform";
-        };
-
-        ptt.onmouseup = ptt.ontouchend = () => {
-            if(recorder && recorder.state === "recording") {
-                recorder.stop();
-                ptt.classList.remove('recording');
-                document.getElementById('ptt-icon').className = "fas fa-microphone";
-            }
-        };
-
-        App.sendText = () => {
-            const i = document.getElementById('m-inp');
-            const rid = [myName, activePeer].sort().join('_');
-            db.ref('chats/'+rid).push({ s: myName, msg: i.value, t: Date.now() });
-            i.value = "";
-        };
-
-        App.sendVoice = (base64) => {
-            const rid = [myName, activePeer].sort().join('_');
-            db.ref('chats/'+rid).push({ s: myName, msg: base64, type: 'voice', t: Date.now() });
-        };
-
-        // --- ЗВОНКИ (AGORA) ---
-        const Voice = {
-            client: null,
-            startCall: async (video = false) => {
-                document.getElementById('call-ui').classList.add('active');
-                Voice.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-                await Voice.client.join("e3af51022f9541388ad48fa2675fc3fb", "Global", null, null);
-                const a = await AgoraRTC.createMicrophoneAudioTrack();
-                let tracks = [a];
-                if(video) {
-                    const v = await AgoraRTC.createCameraVideoTrack();
-                    tracks.push(v);
-                    v.play("local-v");
-                }
-                await Voice.client.publish(tracks);
-                Voice.client.on("user-published", async (u, m) => {
-                    await Voice.client.subscribe(u, m);
-                    if(m === "video") u.videoTrack.play("remote-v");
-                    if(m === "audio") u.audioTrack.play();
+        // --- CALLS & SIGNALS ---
+        const Call = {
+            client: null, tracks: [],
+            initSignal: () => {
+                db.ref('sigs/'+myName).on('value', snap => {
+                    const s = snap.val();
+                    if(s && s.type === 'call') {
+                        document.getElementById('caller-name').innerText = s.from + " звонит...";
+                        document.getElementById('call-overlay').style.display = 'flex';
+                        ringtone.play();
+                    } else if(!s) {
+                        document.getElementById('call-overlay').style.display = 'none';
+                        document.getElementById('video-scr').style.display = 'none';
+                        ringtone.pause();
+                    }
                 });
             },
-            endCall: () => {
-                location.reload(); // Простой способ сбросить звонок
+            sendSignal: async (type) => {
+                await db.ref('sigs/'+activePeer).set({ type:'call', from:myName, mode:type });
+                Call.startAgora(type);
+            },
+            accept: () => {
+                ringtone.pause();
+                document.getElementById('call-overlay').style.display = 'none';
+                Call.startAgora('video');
+            },
+            end: async () => {
+                await db.ref('sigs/'+myName).remove();
+                if(activePeer) await db.ref('sigs/'+activePeer).remove();
+                location.reload();
+            },
+            startAgora: async (mode) => {
+                document.getElementById('video-scr').style.display = 'block';
+                Call.client = AgoraRTC.createClient({ mode:"rtc", codec:"vp8" });
+                const room = [myName, activePeer].sort().join('_');
+                await Call.client.join("e3af51022f9541388ad48fa2675fc3fb", room, null, null);
+                const mic = await AgoraRTC.createMicrophoneAudioTrack();
+                Call.tracks = [mic];
+                if(mode === 'video') {
+                    const cam = await AgoraRTC.createCameraVideoTrack();
+                    Call.tracks.push(cam);
+                    cam.play("local-v");
+                }
+                await Call.client.publish(Call.tracks);
+                Call.client.on("user-published", async (u, m) => {
+                    await Call.client.subscribe(u, m);
+                    if(m==="video") u.videoTrack.play("remote-v");
+                    if(m==="audio") u.audioTrack.play();
+                });
             }
         };
 
+        // --- PTT LOGIC ---
+        const ptt = document.getElementById('ptt-btn');
+        let rec = null, chunks = [];
+        ptt.onmousedown = ptt.ontouchstart = async () => {
+            if(document.getElementById('m-inp').value) { App.sendMsg(document.getElementById('m-inp').value); return; }
+            const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+            rec = new MediaRecorder(stream);
+            chunks = [];
+            rec.ondataavailable = e => chunks.push(e.data);
+            rec.onstop = () => {
+                const blob = new Blob(chunks, {type:'audio/webm'});
+                const r = new FileReader(); r.readAsDataURL(blob);
+                r.onloadend = () => App.sendMsg(r.result, 'voice');
+            };
+            rec.start();
+            ptt.classList.add('recording');
+        };
+        ptt.onmouseup = ptt.ontouchend = () => { if(rec) { rec.stop(); ptt.classList.remove('recording'); } };
+
         App.renderList();
+        Call.initSignal();
     </script>
 </body>
 </html>
